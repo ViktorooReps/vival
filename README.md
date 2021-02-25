@@ -1,6 +1,6 @@
 # VIVAL
 
-A simple commandline app for searching and looking up opensource vulnerabilities
+Command line app to validate standard I/O applications on series of tests.
 
 # Installation
 
