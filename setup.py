@@ -22,7 +22,7 @@ dependency_links = [x.strip().replace('git+', '') for x in all_reqs \
 setup (
  name = 'vival',
  description = 'A simple commandline app for testing standard input/output applications.',
- version = '1.0.0',
+ version = '1.0.1',
  packages = find_packages(), # list of all packages
  install_requires = install_requires,
  python_requires='>=2.7', # any python greater than 2.7
