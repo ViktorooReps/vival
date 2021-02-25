@@ -7,6 +7,8 @@ import os
 import argparse
 import subprocess
 
+import click
+
 try:
     from resource import setrlimit, getrlimit
     import resource
@@ -17,7 +19,47 @@ except ImportError:
     def limit_resources():
         pass
 
-#TODO progress bar
+#TODO progress bar, rewrite code
+
+class Test:
+    """Single extracted test"""
+
+    def __init__(self, inp, outp="", cmd=[]):
+        self.status = None
+        self.stdin = inp
+        self.stdout = None
+        self.cmd = cmd
+
+        self.exp_stdout = outp
+
+    def run(exec_path):
+        """Runs executable on this test. Returns True if run succeded"""
+        pass
+
+    def print_last_run():
+        """Prints details on last run"""
+        pass
+
+class TestsParser:
+    """Parses text file with tests"""
+
+    def __init__(self, mode="test"):
+        pass
+
+    def parse(tests_file):
+        """Parses tests_file and returns list of Test objects"""
+        pass
+    
+
+@click.command()
+@click.option("-t", "--tests", "tests_file", default="tests.txt", type=click.File())
+@click.option("-m", "--mode", default="test", show_default=True, type=click.Choice(["test", "fill"], case_sensitive=False))
+@click.option("-nt", "--ntests", default=5, show_default=True, type=click.INT)
+@click.option("-o", "--output", "output_filename", default="output.txt", show_default=True, type=click.Path(writable=True))
+@click.option("-r", "--repeat", "repeat_times", default=1, type=click.INT)
+@click.argument("executable_path", type=click.Path(exists=True, resolve_path=True))
+def main(executable_path, tests_file, mode, ntests, output_filename, repeat_times):
+    pass
 
 def main():
     parser = argparse.ArgumentParser(description="Automatic tester")
