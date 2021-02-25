@@ -5,15 +5,19 @@ import sys
 import os
 
 import argparse
-import subprocess
+import subprocessм обвести
 
-from resource import setrlimit, getrlimit
-import resource
+try:
+    from resource import setrlimit, getrlimit
+    import resource
+
+    def limit_resources():
+        setrlimit(resource.RLIMIT_NPROC, (900, 1000))
+except ImportError:
+    def limit_resources():
+        pass
 
 #TODO progress bar
-
-def limit_resources():
-    setrlimit(resource.RLIMIT_NPROC, (900, 1000))
 
 def main():
     parser = argparse.ArgumentParser(description="Automatic tester")
