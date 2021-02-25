@@ -5,7 +5,7 @@ import sys
 import os
 
 import argparse
-import subprocessм обвести
+import subprocess
 
 try:
     from resource import setrlimit, getrlimit
