@@ -1,0 +1,8 @@
+python setup.py install             <- to test locally
+python setup.py sdist bdist_wheel   <- creating a build
+
+twine upload --repository-url https://test.pypi.org/legacy/ dist/*    <- uploading to test pypi 
+pip install -i https://test.pypi.org/simple/ vival==2.0.0             <- downloading from test pypi
+
+twine upload dist/*     <- uploading to pypi
+pip install vival       <- downloading from pypi

@@ -1,0 +1,63 @@
+COMMENT
+COMMENT
+INPUT
+OUTPUT
+
+DESCRIPTION
+/{Tests to probe new features}/
+
+COMMENT
+/{multiline everything!}/
+/{YAAY}/
+
+INPUT
+/{0}/
+/{1}/
+/{2}/
+
+OUTPUT
+/{1}/
+/{2}/
+/{3
+}/
+
+
+COMMENT
+/{1}/
+OUTPUT /{}/
+
+COMMENT
+/{2}/
+OUTPUT /{}/
+
+COMMENT
+/{3}/
+OUTPUT /{}/
+
+COMMENT
+/{4}/
+OUTPUT /{}/
+
+COMMENT
+/{5}/
+OUTPUT /{}/
+
+COMMENT
+/{6}/
+OUTPUT /{}/
+
+COMMENT
+/{7}/
+OUTPUT /{}/
+
+COMMENT
+/{8}/
+OUTPUT /{}/
+
+COMMENT
+/{9}/
+OUTPUT /{}/
+
+COMMENT
+/{10}/
+OUTPUT /{}/

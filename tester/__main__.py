@@ -4,202 +4,405 @@ from subprocess import Popen, PIPE, STDOUT
 import sys
 import os
 
-import argparse
 import subprocess
 
 import click
 
-try:
-    from resource import setrlimit, getrlimit
-    import resource
-
-    def limit_resources():
-        setrlimit(resource.RLIMIT_NPROC, (900, 1000))
-except ImportError:
-    def limit_resources():
-        pass
-
-#TODO progress bar, rewrite code
+#TODO progress bar
+#TODO run executables with c code, main insertion to .cpp and .c files 
+#TODO documentation
 
 class Test:
     """Single extracted test"""
 
-    def __init__(self, inp, outp="", cmd=[]):
-        self.status = None
-        self.stdin = inp
-        self.stdout = None
-        self.cmd = cmd
+    def __init__(self, title="Unnamed Test"):
+        self.stdin = []
+        self.stdout = []
+        self.cmd = []
+        self.comment = [title]
+        self.type = "unfilled"
 
-        self.exp_stdout = outp
+        self.cmd_join_symbol = " "
+        self.stdin_join_symbol = "\n"
+        self.stdout_join_symbol = "\n"
+        self.comment_join_symbol = "\n"
 
-    def run(exec_path):
+        self.prog_output = None
+        self.failed = None
+
+    def run(self, exec_path):
         """Runs executable on this test. Returns True if run succeded"""
-        pass
+        all_args = [exec_path]
+        joined_cmd = self.cmd_join_symbol.join(self.cmd)
+        joined_stdin = self.stdin_join_symbol.join(self.stdin)
+        joined_stdout = self.stdout_join_symbol.join(self.stdout)
 
-    def print_last_run():
+        for arg in joined_cmd.split(" "):
+            if arg != "":
+                all_args.append(arg)
+
+        prog_output = subprocess.run(all_args, 
+                                    stderr=subprocess.STDOUT, 
+                                    stdout=PIPE,
+                                    input=joined_stdin, 
+                                    encoding='ascii').stdout
+        
+        self.prog_output = prog_output
+
+        if self.type == "filled":
+            self.failed = (prog_output != joined_stdout)
+            return (prog_output == joined_stdout)
+        else:
+            self.failed = False
+            return True
+    
+    def fill(self):
+        """Fills in test using last run"""
+        self.type = "filled"
+        self.stdout = [self.prog_output]
+
+    def print_last_run(self):
         """Prints details on last run"""
-        pass
+        print("-" * 30)
+        
+        joined_comment = self.comment_join_symbol.join(self.comment)
+        print(joined_comment)
+
+        if len(self.cmd) > 0:
+            print("\nCOMMAND LINE ARGUMENTS")
+            joined_cmd = self.cmd_join_symbol.join(self.cmd)
+            print(joined_cmd)
+
+        if len(self.stdin) > 0:
+            print("\nINPUT:")
+            joined_stdin = self.stdin_join_symbol.join(self.stdin)
+            print(joined_stdin)
+
+        print("\nEXPECTED OUTPUT:")
+        joined_stdout = self.stdout_join_symbol.join(self.stdout)
+        print(joined_stdout)
+
+        print("\nPROGRAM OUTPUT:")
+        print(self.prog_output)
+
+        print("-" * 30)
+
+    def tag_with(self, tag, contents):
+        if tag == "INPUT":
+            self.stdin.append(contents)
+
+        if tag == "OUTPUT":
+            self.stdout.append(contents)
+            self.type = "filled"
+
+        if tag == "CMD":
+            self.cmd.append(contents)
+
+        if tag == "COMMENT":
+            self.comment.append(contents)
+
+
+def scan(text, tags):
+    """Scans given text for every tag from tags. Returns map tag->[positions]"""
+    res = {}
+    for tag in tags:
+        res[tag] = []
+
+        stpos = text.find(tag)
+        while (stpos != -1):
+            res[tag].append(stpos)
+
+            stpos += len(tag)
+            stpos = text.find(tag, stpos)
+    
+    return res
+
 
 class TestsParser:
     """Parses text file with tests"""
 
-    def __init__(self, mode="test"):
-        pass
+    id_tags = {"INPUT", "OUTPUT", "MAIN", "CMD", "COMMENT", "DESCRIPTION"}
+    global_tags = {"MAIN", "DESCRIPTION"}
 
-    def parse(tests_file):
-        """Parses tests_file and returns list of Test objects"""
-        pass
+    def __init__(self, parse_format="new", expected_tests="filled"): 
+        self.description = None
+        self.main_text = None
+        self.format = parse_format
+        self.expected_tests = expected_tests
+        self.parse_details = {
+            "ntests": 0,
+            "format": None,
+            "error_message": None,
+            "warning_messages": [],
+        }
+    
+    def tag_globally(self, tag, contents):
+        if tag == "DESCRIPTION":
+            self.description = contents
+
+        if tag == "MAIN":
+            self.main = contents
+
+    def parse(self, tests_file):
+        """Parses tests_file and returns list of Test objects. Returns None in case of an error"""
+        self.parse_details["ntests"] = 0
+        tests = []
+
+        with open(tests_file.name, "r") as txt_file:
+            text = txt_file.read()
+
+        brackets = scan(text, ["/{", "}/"])
+
+        if len(brackets["/{"]) != len(brackets["}/"]):
+            self.parse_details["error_message"] = "Wrong format! Unmatched number of /{ and }/ brackets.\n"
+            return None
+
+        if len(brackets["/{"]) == 0 or self.format == "old":
+            if self.format == "new":
+                self.parse_details["warning_messages"].append("Old format detected!\n")
+
+            # parse tests according to old format
+
+            if self.expected_tests == "unfilled":
+                contents = list(text.split("[INPUT]\n"))[1:]
+                for content in contents:
+                    curr_test = Test( "Test " + str(self.parse_details["ntests"] + 1) )
+
+                    if "{CMD}\n" in content:
+                        cmd, inp = content.split("{CMD}\n")
+
+                        curr_test.tag_with("CMD", cmd)
+                    else:
+                        inp = content
+
+                    curr_test.tag_with("INPUT", inp)
+
+                    tests.append(curr_test)
+                    self.parse_details["ntests"] += 1
+            
+            if self.expected_tests == "filled":
+                contents = list(text.split("[INPUT]\n"))[1:]
+                for content in contents:
+                    curr_test = Test( "Test " + str(self.parse_details["ntests"] + 1) )
+
+                    content, outp = content.split("[OUTPUT]\n")
+
+                    if "{CMD}\n" in content:
+                        cmd, inp = content.split("{CMD}\n")
+
+                        curr_test.tag_with("CMD", cmd)
+                    else:
+                        inp = content
+
+                    curr_test.tag_with("INPUT", inp)
+                    curr_test.tag_with("OUTPUT", outp)
+
+                    tests.append(curr_test)
+                    self.parse_details["ntests"] += 1
+                    
+            return tests
+
+        # parse tests according to new format
+
+        curr_test = Test( "Test " + str(self.parse_details["ntests"] + 1) )
+        filled_fields = set()
+        prev_tag = "DESCRIPTION"
+
+        section_start = 0
+        for lbracket_ind, rbracket_ind in zip(brackets["/{"], brackets["}/"]):
+            contents = text[lbracket_ind + len("/{") : rbracket_ind]
+
+            wild_space = text[section_start : lbracket_ind]
+
+            # search for id tag in wild space
+            search_results = scan(wild_space, self.id_tags)
+            
+            best_tag = None
+            max_pos = -1
+            for tag in search_results:
+                if len(search_results[tag]) != 0:
+                    curr_max = max(search_results[tag])
+                    if curr_max > max_pos:
+                        best_tag = tag
+
+                    max_pos = max(curr_max, max_pos)
+
+            if best_tag == None:
+                # no tag was found in wild space
+                if prev_tag in self.global_tags:
+                    self.tag_globally(prev_tag, contents) 
+                else:
+                    curr_test.tag_with(prev_tag, contents)
+            else:
+                if best_tag in filled_fields:
+                    # new test has started
+                    tests.append(curr_test)
+
+                    self.parse_details["ntests"] += 1
+                    curr_test = Test( "Test " + str(self.parse_details["ntests"] + 1) )
+                    filled_fields = {best_tag}
+
+                    curr_test.tag_with(best_tag, contents)
+                else:
+                    # continue filling in current test
+                    if best_tag in self.global_tags:
+                        self.tag_globally(best_tag, contents)
+                    else:
+                        filled_fields.add(best_tag)
+                        curr_test.tag_with(best_tag, contents)
+                
+                prev_tag = best_tag
+
+            section_start = rbracket_ind + len("}/")
+
+        tests.append(curr_test)
+        self.parse_details["ntests"] += 1
+    
+        return tests
+
+    def write_tests(self, tests, output_filename):
+        """Writes contents of tests and parser to output_filename"""
+        with open(output_filename, "w") as tsts_file:
+            tsts_file.write("Contents of this file were automatically generated by VIVAL tool.\n\n")
+            tsts_file.write("Install with pip: pip install vival\n")
+            tsts_file.write("Visit GitHub for more info: https://github.com/ViktorooReps/vival\n\n")
+
+            tsts_file.write("DESCRIPTION\n\n")
+            if self.description == None:
+                self.description = "No description was provided for these tests."
+            tsts_file.write("/{" + self.description + "}/\n")
+
+            tsts_file.write("\n\n")
+
+            if self.main_text != None:
+                tsts_file.write("MAIN\n\n")
+                tsts_file.write("/{" + self.main_text + "}/\n")
+
+                tsts_file.write("\n\n")
+
+            tsts_file.write(17 * "-" + "Tests" + 17 * "-")
+            tsts_file.write("\n\n")
+
+            for test in tests:
+                title = test.comment[0]
+                if len(test.comment) > 1:
+                    comment = test.comment_join_symbol.join(test.comment[1:])
+                else:
+                    comment = "No comment was provided."
+                
+                joined_stdin = test.stdin_join_symbol.join(test.stdin)
+                joined_stdout = test.stdout_join_symbol.join(test.stdout)
+                joined_cmd = test.cmd_join_symbol.join(test.cmd)
+
+                if test.type == "filled":
+                    tsts_file.write(title + "\n\n")
+
+                if test.type == "unfilled":
+                    tsts_file.write(title + " (unfilled)\n\n")
+
+                tsts_file.write("COMMENT\n")
+                tsts_file.write("/{" + comment + "}/\n")
+
+                tsts_file.write("\n")
+
+                if len(test.cmd) > 0:
+                    tsts_file.write("CMD\n")
+                    tsts_file.write("/{" + joined_cmd + "}/\n")
+
+                    tsts_file.write("\n")
+
+                if len(test.stdin) > 0:
+                    tsts_file.write("INPUT\n")
+                    tsts_file.write("/{" + joined_stdin + "}/\n")
+
+                    tsts_file.write("\n")
+
+                if len(test.stdout) > 0:
+                    tsts_file.write("OUTPUT\n")
+                    tsts_file.write("/{" + joined_stdout + "}/\n")
+                
+                tsts_file.write("\n\n\n")
     
 
 @click.command()
 @click.option("-t", "--tests", "tests_file", default="tests.txt", type=click.File())
-@click.option("-m", "--mode", default="test", show_default=True, type=click.Choice(["test", "fill"], case_sensitive=False))
 @click.option("-nt", "--ntests", default=5, show_default=True, type=click.INT)
-@click.option("-o", "--output", "output_filename", default="output.txt", show_default=True, type=click.Path(writable=True))
+@click.option("-o", "--output", "output_filename", default=None, type=click.Path(writable=True))
 @click.option("-r", "--repeat", "repeat_times", default=1, type=click.INT)
+@click.option("-m", "--mode", default="test", type=click.Choice(["fill", "test"], case_sensitive=False))
+@click.option('--old-format', is_flag=True)
 @click.argument("executable_path", type=click.Path(exists=True, resolve_path=True))
-def main(executable_path, tests_file, mode, ntests, output_filename, repeat_times):
-    pass
+def main(executable_path, tests_file, ntests, output_filename, repeat_times, mode, old_format):
+    if mode == "test":
+        expected_tests = "filled"
+    else:
+        expected_tests = "unfilled"
+    
+    if old_format:
+        parse_format = "old"
+    else:
+        parse_format = "new"
+    
+    parser = TestsParser(expected_tests=expected_tests, parse_format=parse_format)
 
-def main():
-    parser = argparse.ArgumentParser(description="Automatic tester")
-    parser.add_argument("x_file", 
-                        help="Path to the executable file you want to test.")
+    tests = parser.parse(tests_file)
 
-    parser.add_argument("--tests", "-t", default="tests.txt",
-                        help="Path to the text file with tests.")
+    passed = 0
+    suitable = 0
 
-    parser.add_argument("--print", "-p", default="wrong", choices=["none", "all", "wrong"],
-                        help="What types of tests you want to print: "
-                        "none - no tests will be printed, "
-                        "all - every test will be printed, "
-                        "wrong - only the ones your program got wrong answers on will be printed.")
+    if tests == None:
+        print("Parse failed!")
+        print(parser.parse_details["error_message"])
+        return
 
-    parser.add_argument("--ntests", "-nt", default=5, type=int, 
-                        help="How many tests of specified type you want to be printed.")
+    if len(parser.parse_details["warning_messages"]) > 0:
+        print("\nWarnings from parser:")
+        for warning in parser.parse_details["warning_messages"]:
+            print(warning)
 
-    parser.add_argument("--mode", "-m", choices=["fill", "test"], default="test",
-                        help="Choose what mode you want: test lets you test your programs "
-                        "and fill lets you fill in outputs for test inputs using x_file executable.")
+    if parser.description != None:
+        print("\n" + parser.description + "\n")
 
-    parser.add_argument("--output_file", "-o", default="output.txt",
-                        help="In fill mode lets you specify path to file with filled in tests.")
+    total_tests = len(tests)
+    if mode == "test":
+        for test in tests:
+            if test.type == "filled":
+                run_succeded = test.run(executable_path)
+                suitable += 1
 
-    parser.add_argument("--repeat", "-r", default=1, type=int,
-                        help="How many times to repeat the same tests (high value is recommended "
-                        "when result might be ambiguous)")
-
-    args = parser.parse_args()
-
-
-    if args.mode == "fill":
-        tests = []
-        outputs = []
-        ntest = 0
-        total_tests = 0
-        written = 0
-        with open(args.tests) as tst_file:
-            tests = list(tst_file.read().split("[INPUT]\n"))[1:]
-            for test in tests:
-                cmd_args = ""
-                if "{CMD}\n" in test:
-                    cmd_args, test = test.split("{CMD}\n")
-                
-                all_args = ['./' + args.x_file]
-                for arg in cmd_args.split(" "):
-                    if arg != "":
-                        all_args.append(arg)
-
-                prog_output = subprocess.run(all_args, 
-                                            stderr=subprocess.STDOUT, 
-                                            stdout=PIPE,
-                                            input=test, 
-                                            encoding='ascii').stdout
-                outputs.append(prog_output)
-
-        with open(args.output_file, "w") as out_file:
-            total_tests = len(tests)
-            for test, output in zip(tests, outputs):
-                ntest += 1
-                out_file.writelines(["[INPUT]\n", 
-                                    test,  
-                                    "[OUTPUT]\n", 
-                                    output])
-
-                if args.print == "all":
-                    print(30 * "-")
-                    print("TEST ", ntest, ":\n", test, sep="")
-                    print("PROGRAM OUTPUT:\n", output, sep="")
-                    print(30 * "-")
-
-                written += 1
-                if written == args.ntests:
-                    break
-
-        
-        print("Written tests: ", written, "/", total_tests, sep="")
-
-    if args.mode == "test":
-        with open(args.tests) as tst_file:
-            ntest = 0
-            passed = 0
-            printed = 0
-
-            tests = list(tst_file.read().split("[INPUT]\n"))[1:]
-            for test in tests:
-                if printed == int(args.ntests):
-                    break
-
-                ntest += 1
-
-                test_input, test_output = test.split("[OUTPUT]\n")
-                
-                cmd_args = ""
-                if "{CMD}\n" in test_input:
-                    cmd_args, test_input = test_input.split("{CMD}\n")
-
-                all_args = ['./' + args.x_file]
-                for arg in cmd_args.split(" "):
-                    if arg != "":
-                        all_args.append(arg)
-                
-                test_failed = False
-                for i in range(args.repeat):
-                    prog_output = subprocess.run(all_args, 
-                                                stderr=subprocess.STDOUT, 
-                                                stdout=PIPE,
-                                                input=test_input, 
-                                                encoding='ascii').stdout
-                    if prog_output != test_output:
-                        test_failed = True
-                        break
-                
-                if args.print == "all":
-                    print(30 * "-")
-                    print("TEST ", ntest, ":", sep="")
-                    if len(cmd_args) > 1:
-                        print("command line arguments:", all_args[1:])
-                    print(test_input)
-                    print("PROGRAM OUTPUT:\n", prog_output, sep="")
-                    print("NEEDED OUTPUT:\n", test_output, sep="")
-                    print(30 * "-")
-                    printed += 1
-
-                if not test_failed:
+                if run_succeded:
                     passed += 1
-                else:
-                    if args.print == "wrong":
-                        print(30 * "-")
-                        print("TEST ", ntest, ":", sep="")
-                        if len(cmd_args) > 1:
-                            print("command line arguments:", all_args[1:])
-                        print(test_input)
-                        print("PROGRAM OUTPUT:\n", prog_output, sep="")
-                        print("NEEDED OUTPUT:\n", test_output, sep="")
-                        print(30 * "-")
-                        printed += 1
+        
+    if mode == "fill":
+        for test in tests:
+            if test.type == "unfilled":
+                run_succeded = test.run(executable_path)
+                suitable += 1
 
-            print("Passed tests: ", passed, "/", ntest, sep="")
+                if run_succeded:
+                    passed += 1
+                    test.fill()
+
+    if passed < suitable:
+        print("Failed on these tests:\n")
+        
+        printed = 0
+        for test in tests:
+            if printed >= ntests:
+                break
+
+            if test.failed:
+                test.print_last_run()
+                printed += 1
+    
+    if mode == "test":
+        print("Passed tests: " + str(passed) + "/" + str(suitable))
+
+    if mode == "fill":
+        print("Filled tests: " + str(passed) + "/" + str(suitable))
+
+    if output_filename != None:
+        parser.write_tests(tests, output_filename)
 
 if __name__ == "__main__":
     main()
