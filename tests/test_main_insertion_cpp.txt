@@ -1,0 +1,54 @@
+DESCRIPTION
+/{Testing insertion of main (C++ program)}/
+
+MAIN 
+/{
+#include <iostream> 
+
+int func(int a, int b); 
+
+int main()
+{
+    int a, b;
+    while (std::cin >> a >> b) {
+        std::cout << func(a, b) << std::endl;
+    }
+}
+}/
+
+
+COMMENT
+/{Empty test}/
+
+OUTPUT
+/{}/ 
+
+
+COMMENT
+/{Basic test}/
+
+INPUT 
+/{1 2}/
+
+OUTPUT
+/{3
+}/ 
+
+
+COMMENT
+/{Long test}/
+
+INPUT
+/{1 2
+3 4
+5 6
+7 8
+9 10}/
+
+OUTPUT
+/{3
+7
+11
+15
+19
+}/
