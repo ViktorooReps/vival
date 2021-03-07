@@ -121,24 +121,39 @@ class Compiler:
         "C++": "g++"
     }
 
-    def __init__(self, lang="C++"):
+    def __init__(self, lang="C++", tmp_dir=None):
         self.guess_lang = lang
+        self.tmp_dir = tmp_dir
         self.compile_details = {
             "error_message": None
         }
 
-    def plant_main(self, parser, tmpdir_path, exec_path):
+    def get_language(self, src_file):
+        """Changes self.guess_lang according to file's extension"""
+        if src_file.endswith(".c"):
+            self.guess_lang = "C"
+
+        if src_file.endswith(".cpp"):
+            self.guess_lang = "C++"
+
+    def get_tmpdir(self):
+        """Returns directory to use as temporary storage"""
+        if self.tmp_dir != None:
+            tmpdir_path = self.tmp_dir
+        else:
+            tmpdir_path = os.path.dirname(os.path.realpath(__file__))
+
+        return tmpdir_path
+
+    def plant_main(self, parser, exec_path):
         """Compiles given C/C++ code with new entry point. Returns new executable path"""
 
         compiler = new_compiler()
 
-        if exec_path.endswith(".c"):
-            self.guess_lang = "C"
+        self.get_language(exec_path)
+        tmpdir_path = self.get_tmpdir()
 
-        elif exec_path.endswith(".cpp"):
-            self.guess_lang = "C++"
-
-        # create main(.c/.cpp) in tmpdir
+        # create main{.c/.cpp} in tmpdir
 
         if self.guess_lang == "C++":
             main_src = os.path.join(tmpdir_path, "main.cpp")
@@ -170,6 +185,21 @@ class Compiler:
             return None
 
         return res_path
+
+    def compile(self, src_file):
+        """Compiles source file to executable"""
+        self.get_language(src_file)
+        tmpdir_path = self.get_tmpdir()
+        exec_file = new_compiler().executable_filename(os.path.join(tmpdir_path, "res"))
+
+        try:
+            subprocess.run([self.compiler[self.guess_lang], src_file, "-o", exec_file], check=True)
+        except CalledProcessError as err:
+            self.compile_details["error_message"] = "Failed to compile source file. Make sure you have C/C++ compiler installed."
+            return None
+
+        return exec_file
+
             
 
 class TestsParser:

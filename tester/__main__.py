@@ -2,12 +2,17 @@ from tempfile import TemporaryDirectory
 from tester.testmanip import Compiler, TestsParser
 
 import click
+import os
+
+import pkg_resources 
+
+__version__ = pkg_resources.require("vival")[0].version
 
 #TODO progress bar
-#TODO run executables with c code, main insertion to .cpp and .c files 
 #TODO documentation
 
 @click.command()
+@click.version_option(__version__, prog_name="VIVAL")
 @click.option("-t", "--tests", "tests_file", default="tests.txt", type=click.File(), 
     help="Path to file with tests.")
 @click.option("-nt", "--ntests", default=5, show_default=True, type=click.INT,
@@ -34,33 +39,33 @@ def main(executable_path, tests_file, ntests, output_filename, lang, mode, old_f
             parse_format = "new"
         
         parser = TestsParser(expected_tests=expected_tests, parse_format=parse_format)
-        compiler = Compiler(lang=lang) 
+        compiler = Compiler(lang=lang, tmp_dir=tmpdir_name) 
 
         tests = parser.parse(tests_file)
-
-        passed = 0
-        suitable = 0
 
         if tests == None:
             print("Parse failed!")
             print(parser.parse_details["error_message"])
             return
 
-        if parser.main_text != None:
-            executable_path = compiler.plant_main(parser, tmpdir_name, executable_path)
-
-            if executable_path == None:
-                print("Compilation failed!")
-                print(compiler.compile_details["error_message"])
-                return
-
         if len(parser.parse_details["warning_messages"]) > 0:
             print("\nWarnings from parser:")
             for warning in parser.parse_details["warning_messages"]:
                 print(warning)
 
-        if parser.description != None:
-            print("\n" + parser.description + "\n")
+        if parser.main_text != None:
+            executable_path = compiler.plant_main(parser, executable_path)
+
+        if not os.access(executable_path, mode=os.X_OK):
+            executable_path = compiler.compile(executable_path)
+
+        if executable_path == None:
+            print("Compilation failed!")
+            print(compiler.compile_details["error_message"])
+            return
+
+        passed = 0
+        suitable = 0
 
         total_tests = len(tests)
         if mode == "test":
@@ -81,6 +86,9 @@ def main(executable_path, tests_file, ntests, output_filename, lang, mode, old_f
                     if run_succeded:
                         passed += 1
                         test.fill()
+
+        if parser.description != None:
+            print("\n" + parser.description + "\n")
 
         if passed < suitable:
             print("Failed on these tests:\n")
