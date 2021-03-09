@@ -39,9 +39,9 @@ def main(executable_path, tests_file, ntests, output_filename, lang, mode, old_f
             parse_format = "new"
         
         parser = TestsParser(expected_tests=expected_tests, parse_format=parse_format)
-        compiler = Compiler(lang=lang, tmp_dir=tmpdir_name) 
-
         tests = parser.parse(tests_file)
+
+        compiler = Compiler(lang=lang, tmp_dir=tmpdir_name, flags=parser.compiler_flags) 
 
         if tests == None:
             print("Parse failed!")

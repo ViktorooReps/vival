@@ -121,7 +121,12 @@ class Compiler:
         "C++": "g++"
     }
 
-    def __init__(self, lang="C++", tmp_dir=None):
+    def __init__(self, lang="C++", tmp_dir=None, flags=None):
+        if flags == None:
+            self.flags = []
+        else:
+            self.flags = flags.split(" ")
+
         self.guess_lang = lang
         self.tmp_dir = tmp_dir
         self.compile_details = {
@@ -171,8 +176,9 @@ class Compiler:
 
         # compile source files
         try:
-            subprocess.run([self.compiler[self.guess_lang], "-c", main_src, "-o", main_obj], check=True)
-            subprocess.run([self.compiler[self.guess_lang], "-c", exec_path, "-o", exec_obj], check=True)
+            args = [self.compiler[self.guess_lang]] + self.flags
+            subprocess.run(args + [ "-c", main_src, "-o", main_obj], check=True)
+            subprocess.run(args + ["-c", exec_path, "-o", exec_obj], check=True)
         except CalledProcessError as err:
             self.compile_details["error_message"] = "Failed to compile source files. Make sure you have C/C++ compiler installed."
             return None
@@ -193,24 +199,37 @@ class Compiler:
         exec_file = new_compiler().executable_filename(os.path.join(tmpdir_path, "res"))
 
         try:
-            subprocess.run([self.compiler[self.guess_lang], src_file, "-o", exec_file], check=True)
+            args = [self.compiler[self.guess_lang]] + self.flags
+            subprocess.run(args + [src_file, "-o", exec_file], check=True)
         except CalledProcessError as err:
             self.compile_details["error_message"] = "Failed to compile source file. Make sure you have C/C++ compiler installed."
             return None
 
         return exec_file
-
             
 
 class TestsParser:
     """Parses text file with tests"""
 
-    id_tags = {"INPUT", "OUTPUT", "MAIN", "CMD", "COMMENT", "DESCRIPTION"}
-    global_tags = {"MAIN", "DESCRIPTION"}
+    id_tags = {
+        "INPUT", 
+        "OUTPUT", 
+        "MAIN", 
+        "CMD", 
+        "COMMENT", 
+        "DESCRIPTION",
+        "FLAGS"
+    }
+    global_tags = {
+        "MAIN", 
+        "DESCRIPTION",
+        "FLAGS"
+    }
 
     def __init__(self, parse_format="new", expected_tests="filled"): 
         self.description = None
         self.main_text = None
+        self.compiler_flags = None
         self.format = parse_format
         self.expected_tests = expected_tests
         self.parse_details = {
@@ -226,6 +245,9 @@ class TestsParser:
 
         if tag == "MAIN":
             self.main_text = contents
+
+        if tag == "FLAGS":
+            self.compiler_flags = contents
 
     def parse(self, tests_file):
         """Parses tests_file and returns list of Test objects. Returns None in case of an error"""
@@ -356,6 +378,12 @@ class TestsParser:
             tsts_file.write("/{" + self.description + "}/\n")
 
             tsts_file.write("\n\n")
+
+            if self.compiler_flags != None:
+                tsts_file.write("FLAGS\n\n")
+                tsts_file.write("/{" + self.compiler_flags + "}/\n")
+
+                tsts_file.write("\n\n")
 
             if self.main_text != None:
                 tsts_file.write("MAIN\n\n")
