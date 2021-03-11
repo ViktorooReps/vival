@@ -43,7 +43,7 @@ Tag         | Category | Tagged text meaning
 INPUT       | Test     | What will executed program get on stdin. 
 CMD         | Test     | Command line arguments with which the program will be executed.
 OUTPUT      | Test     | Expected contents of stdout.
-COMMENT     | Test     | Some commentary on test that will be displayed if programs fails it.
+COMMENT     | Test     | Some commentary on test that will be displayed if program fails it.
 MAIN        | File     | Some auxillary code (usually just `int main() { ... }`) that will be compiled and linked with given source code (ignored if executable is given as argument). 
 FLAGS       | File     | Flags that will be passed to compiler.
 DESCRIPTION | File     | Description of tests file.
