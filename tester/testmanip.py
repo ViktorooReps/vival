@@ -30,12 +30,17 @@ class Test:
         self.stdout = []
         self.cmd = []
         self.comment = [title]
+        self.startup = []
+        self.cleanup = []
+
         self.type = "unfilled"
 
         self.cmd_join_symbol = " "
         self.stdin_join_symbol = "\n"
         self.stdout_join_symbol = "\n"
         self.comment_join_symbol = "\n"
+        self.startup_join_symbol = "\n"
+        self.cleanup_join_symbol = "\n"
 
         self.prog_output = None
         self.failed = None
@@ -46,10 +51,22 @@ class Test:
         joined_cmd = self.cmd_join_symbol.join(self.cmd)
         joined_stdin = self.stdin_join_symbol.join(self.stdin)
         joined_stdout = self.stdout_join_symbol.join(self.stdout)
+        joined_startup = self.startup_join_symbol.join(self.startup)
+        joined_cleanup = self.cleanup_join_symbol.join(self.cleanup)
+
+        exec_path = os.path.abspath(exec_path)
 
         for arg in joined_cmd.split(" "):
             if arg != "":
                 all_args.append(arg)
+
+        for args in joined_startup.split("\n"):
+            if args != "":
+                code = os.waitstatus_to_exitcode(os.system(args))
+                if code != 0:
+                    self.prog_output = "The program was not executed due to errors during environment preparation stage. Failed to execute: " + args
+                    self.failed = True
+                    return not self.failed
 
         prog_output = subprocess.run(all_args, 
                                     stderr=subprocess.STDOUT, 
@@ -59,12 +76,20 @@ class Test:
         
         self.prog_output = prog_output
 
+        for args in joined_cleanup.split("\n"):
+            if args != "":
+                code = os.waitstatus_to_exitcode(os.system(args))
+                if code != 0:
+                    self.prog_output = "The program was not executed due to errors during environment preparation stage. Failed to execute: " + args
+                    self.failed = True
+                    return not self.failed
+
         if self.type == "filled":
             self.failed = (prog_output != joined_stdout)
-            return (prog_output == joined_stdout)
+            return not self.failed
         else:
             self.failed = False
-            return True
+            return not self.failed
     
     def fill(self):
         """Fills in test using last run"""
@@ -77,6 +102,11 @@ class Test:
         
         joined_comment = self.comment_join_symbol.join(self.comment)
         print(joined_comment)
+
+        if len(self.startup) > 0:
+            print("\nENVIRONMENT PREPARATION:")
+            joined_startup = self.startup_join_symbol.join(self.startup)
+            print(joined_startup)
 
         if len(self.cmd) > 0:
             print("\nCOMMAND LINE ARGUMENTS")
@@ -97,6 +127,52 @@ class Test:
 
         print("-" * 30)
 
+    def __str__(self):
+        title = self.comment[0]
+        if len(self.comment) > 1:
+            comment = self.comment_join_symbol.join(self.comment[1:])
+        else:
+            comment = "No comment was provided."
+        
+        joined_stdin = self.stdin_join_symbol.join(self.stdin)
+        joined_stdout = self.stdout_join_symbol.join(self.stdout)
+        joined_cmd = self.cmd_join_symbol.join(self.cmd)
+        joined_startup = self.startup_join_symbol.join(self.startup)
+        joined_cleanup = self.cleanup_join_symbol.join(self.cleanup)
+
+        str_repr = ""
+
+        if self.type == "filled":
+            str_repr += title + "\n\n"
+
+        if self.type == "unfilled":
+            str_repr += title + " (unfilled)\n\n"
+
+        str_repr += "COMMENT\n"
+        str_repr += "/{" + comment + "}/\n\n"
+
+        if len(self.startup) > 0:
+            str_repr += "STARTUP\n"
+            str_repr += "/{" + joined_startup + "}/\n\n"
+
+        if len(self.cleanup) > 0:
+            str_repr += "CLEANUP\n"
+            str_repr += "/{" + joined_cleanup + "}/\n\n"
+
+        if len(self.cmd) > 0:
+            str_repr += "CMD\n"
+            str_repr += "/{" + joined_cmd + "}/\n\n"
+
+        if len(self.stdin) > 0:
+            str_repr += "INPUT\n"
+            str_repr += "/{" + joined_stdin + "}/\n\n"
+
+        if len(self.stdout) > 0:
+            str_repr += "OUTPUT\n"
+            str_repr += "/{" + joined_stdout + "}/\n\n"
+        
+        return str_repr
+
     def tag_with(self, tag, contents):
         if tag == "INPUT":
             self.stdin.append(contents)
@@ -110,6 +186,12 @@ class Test:
 
         if tag == "COMMENT":
             self.comment.append(contents)
+
+        if tag == "STARTUP":
+            self.startup.append(contents)
+
+        if tag == "CLEANUP":
+            self.cleanup.append(contents)
 
 
 class Compiler:
@@ -148,7 +230,7 @@ class Compiler:
         else:
             tmpdir_path = os.path.dirname(os.path.realpath(__file__))
 
-        return tmpdir_path
+        return os.path.abspath(tmpdir_path)
 
     def plant_main(self, parser, exec_path):
         """Compiles given C/C++ code with new entry point. Returns new executable path"""
@@ -190,7 +272,7 @@ class Compiler:
             self.compile_details["error_message"] = "Failed to link object files."
             return None
 
-        return res_path
+        return os.path.abspath(res_path)
 
     def compile(self, src_file):
         """Compiles source file to executable"""
@@ -205,7 +287,7 @@ class Compiler:
             self.compile_details["error_message"] = "Failed to compile source file. Make sure you have C/C++ compiler installed."
             return None
 
-        return exec_file
+        return os.path.abspath(exec_file)
             
 
 class TestsParser:
@@ -218,7 +300,9 @@ class TestsParser:
         "CMD", 
         "COMMENT", 
         "DESCRIPTION",
-        "FLAGS"
+        "FLAGS",
+        "STARTUP",
+        "CLEANUP"
     }
     global_tags = {
         "MAIN", 
@@ -316,7 +400,7 @@ class TestsParser:
         section_start = 0
         for lbracket_ind, rbracket_ind in zip(brackets["/{"], brackets["}/"]):
             contents = text[lbracket_ind + len("/{") : rbracket_ind]
-
+            
             wild_space = text[section_start : lbracket_ind]
 
             # search for id tag in wild space
@@ -368,6 +452,8 @@ class TestsParser:
     def write_tests(self, tests, output_filename):
         """Writes contents of tests and parser to output_filename"""
         with open(output_filename, "w") as tsts_file:
+            line_len = 70
+
             tsts_file.write("Contents of this file were automatically generated by VIVAL tool.\n\n")
             tsts_file.write("Install with pip: pip install vival\n")
             tsts_file.write("Visit GitHub for more info: https://github.com/ViktorooReps/vival\n\n")
@@ -391,46 +477,11 @@ class TestsParser:
 
                 tsts_file.write("\n\n")
 
-            tsts_file.write(17 * "-" + "Tests" + 17 * "-")
+            dashes = (line_len - len("Tests")) // 2
+            tsts_file.write(dashes * "-" + "Tests" + dashes * "-")
             tsts_file.write("\n\n")
 
             for test in tests:
-                title = test.comment[0]
-                if len(test.comment) > 1:
-                    comment = test.comment_join_symbol.join(test.comment[1:])
-                else:
-                    comment = "No comment was provided."
-                
-                joined_stdin = test.stdin_join_symbol.join(test.stdin)
-                joined_stdout = test.stdout_join_symbol.join(test.stdout)
-                joined_cmd = test.cmd_join_symbol.join(test.cmd)
+                tsts_file.write(str(test))
+                tsts_file.write("\n\n")
 
-                if test.type == "filled":
-                    tsts_file.write(title + "\n\n")
-
-                if test.type == "unfilled":
-                    tsts_file.write(title + " (unfilled)\n\n")
-
-                tsts_file.write("COMMENT\n")
-                tsts_file.write("/{" + comment + "}/\n")
-
-                tsts_file.write("\n")
-
-                if len(test.cmd) > 0:
-                    tsts_file.write("CMD\n")
-                    tsts_file.write("/{" + joined_cmd + "}/\n")
-
-                    tsts_file.write("\n")
-
-                if len(test.stdin) > 0:
-                    tsts_file.write("INPUT\n")
-                    tsts_file.write("/{" + joined_stdin + "}/\n")
-
-                    tsts_file.write("\n")
-
-                if len(test.stdout) > 0:
-                    tsts_file.write("OUTPUT\n")
-                    tsts_file.write("/{" + joined_stdout + "}/\n")
-                
-                tsts_file.write("\n\n\n")
-    

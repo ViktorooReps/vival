@@ -1,0 +1,74 @@
+DESCRIPTION
+/{Should pass first two tests and fail on the last one}/
+
+MAIN
+/{
+#include <iostream>
+#include <fstream>
+
+int func(int a, int b);
+
+int main()
+{
+    std::ifstream f;
+    f.open("tst.txt");
+
+    int a, b;
+    while (f >> a >> b) {
+        std::cout << func(a, b);
+    }
+}
+}/
+
+
+STARTUP
+/{
+mkdir lala
+touch lala/tst.txt
+echo "10 1" >> lala/tst.txt
+cd lala
+}/
+
+CLEANUP
+/{
+cd ..
+rm -r lala
+}/
+
+OUTPUT
+/{11}/
+
+
+STARTUP
+/{
+mkdir lala
+touch lala/tst.txt
+echo "10 1 20 2 30 3" >> lala/tst.txt
+cd lala
+}/
+
+CLEANUP
+/{
+cd ..
+rm -r lala
+}/
+
+OUTPUT
+/{112233}/
+
+
+STARTUP
+/{
+mkdir lala
+echo "10 1 20 2 30 3" >> lala/tst.txt
+cd lala
+}/
+
+CLEANUP
+/{
+cd ..
+rm -r lala
+}/
+
+OUTPUT
+/{112233}/

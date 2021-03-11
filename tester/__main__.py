@@ -9,7 +9,6 @@ import pkg_resources
 __version__ = pkg_resources.require("vival")[0].version
 
 #TODO progress bar
-#TODO documentation
 
 @click.command()
 @click.version_option(__version__, prog_name="VIVAL")
@@ -28,6 +27,9 @@ __version__ = pkg_resources.require("vival")[0].version
 @click.argument("executable_path", type=click.Path(exists=True, resolve_path=True))
 def main(executable_path, tests_file, ntests, output_filename, lang, mode, old_format):
     with TemporaryDirectory() as tmpdir_name:
+        if output_filename != None:
+            output_filename = os.path.abspath(output_filename)
+
         if mode == "test":
             expected_tests = "filled"
         else:

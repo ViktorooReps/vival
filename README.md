@@ -36,7 +36,7 @@ Here are some flags you may find useful:
 
 All the tests file structure condenses to pairs __(tag, tagged text)__, where tag specifies the use of it's text.
 
-Tags and their meaning (some tags might not be available on earlier versions of VIVAL) for v2.3.1:
+Tags and their meaning (some tags might not be available on earlier versions of VIVAL) for v2.4:
 
 Tag         | Category | Tagged text meaning
 ----------- | -------- | -------------------
@@ -47,6 +47,8 @@ COMMENT     | Test     | Some commentary on test that will be displayed if progr
 MAIN        | File     | Some auxillary code (usually just `int main() { ... }`) that will be compiled and linked with given source code (ignored if executable is given as argument). 
 FLAGS       | File     | Flags that will be passed to compiler.
 DESCRIPTION | File     | Description of tests file.
+STARTUP     | Test     | Shell commands that will be executed before test.
+CLEANUP     | Test     | Shell commands that will be executed after test.
 
 The body of tests file consists of repeating sections of "wild space" and bracketed text: <...WS...>__/{__<...text...>__}/__ . Wild space is mostly skipped apart from tags that will define meaning of text in brackets. The text in brackets stays unformatted.
 
