@@ -1,0 +1,14 @@
+DESCRIPTION
+/{CMD test}/
+
+FLAGS
+/{-Wall -Werror -lm}/
+
+CMD
+/{1 2 3}/
+
+OUTPUT
+/{1
+2
+3
+}/

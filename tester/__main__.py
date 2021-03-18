@@ -1,5 +1,6 @@
 from tempfile import TemporaryDirectory
-from tester.testmanip import Compiler, TestsParser
+from tester.testmanip import TestsParser
+from tester.compiler import Compiler
 
 import click
 import os
@@ -8,6 +9,7 @@ import pkg_resources
 
 __version__ = pkg_resources.require("vival")[0].version
 
+#TODO implement Feature class
 #TODO progress bar
 
 @click.command()
@@ -40,10 +42,13 @@ def main(executable_path, tests_file, ntests, output_filename, lang, mode, old_f
         else:
             parse_format = "new"
         
-        parser = TestsParser(expected_tests=expected_tests, parse_format=parse_format)
+        parser = TestsParser(
+            expect_filled_tests= (expected_tests == "filled"), 
+            parse_format=parse_format
+        )
         tests = parser.parse(tests_file)
 
-        compiler = Compiler(lang=lang, tmp_dir=tmpdir_name, flags=parser.compiler_flags) 
+        compiler = Compiler(lang=lang, tmp_dir=tmpdir_name, flags=parser.get_flags()) 
 
         if tests == None:
             print("Parse failed!")
@@ -55,10 +60,10 @@ def main(executable_path, tests_file, ntests, output_filename, lang, mode, old_f
             for warning in parser.parse_details["warning_messages"]:
                 print(warning)
 
-        if parser.main_text != None:
+        if parser.get_main() != None:
             executable_path = compiler.plant_main(parser, executable_path)
 
-        if not os.access(executable_path, mode=os.X_OK):
+        if executable_path != None and not os.access(executable_path, mode=os.X_OK):
             executable_path = compiler.compile(executable_path)
 
         if executable_path == None:
@@ -69,11 +74,13 @@ def main(executable_path, tests_file, ntests, output_filename, lang, mode, old_f
         passed = 0
         suitable = 0
 
+        file_features = parser.get_file_features()
+
         total_tests = len(tests)
         if mode == "test":
             for test in tests:
-                if test.type == "filled":
-                    run_succeded = test.run(executable_path)
+                if test.filled:
+                    run_succeded = test.run(executable_path, file_features)
                     suitable += 1
 
                     if run_succeded:
@@ -81,16 +88,15 @@ def main(executable_path, tests_file, ntests, output_filename, lang, mode, old_f
             
         if mode == "fill":
             for test in tests:
-                if test.type == "unfilled":
-                    run_succeded = test.run(executable_path)
+                if not test.filled:
+                    run_succeded = test.run(executable_path, file_features)
                     suitable += 1
 
                     if run_succeded:
                         passed += 1
                         test.fill()
 
-        if parser.description != None:
-            print("\n" + parser.description + "\n")
+        print("\n" + str(parser) + "\n")
 
         if passed < suitable:
             print("Failed on these tests:\n")

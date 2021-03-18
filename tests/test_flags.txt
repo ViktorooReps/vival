@@ -1,5 +1,0 @@
-DESCRIPTION
-/{Should fail compilation because of flags}/
-
-FLAGS 
-/{-Wall -Werror -std=gnu++17 -lm}/

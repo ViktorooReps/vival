@@ -1,0 +1,14 @@
+DESCRIPTION
+/{Will only pass if TL occurs}/
+
+FLAGS
+/{-Wall -Werror -lm}/
+
+TIMEOUT
+/{0.0}/
+
+INPUT
+/{1 2 3}/
+
+OUTPUT
+/{Time limit exceeded}/

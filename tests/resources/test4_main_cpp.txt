@@ -1,0 +1,24 @@
+DESCRIPTION
+/{Testing main insertion into .cpp file}/
+
+MAIN
+/{
+#include <iostream>
+
+int inc(int x);
+
+int main()
+{
+    int x;
+    while (std::cin >> x) std::cout << inc(x) << " ";
+}
+}/
+
+FLAGS
+/{-Wall -Werror -lm}/
+
+INPUT
+/{1 2 3}/
+
+OUTPUT
+/{2 3 4 }/
