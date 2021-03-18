@@ -1,5 +1,4 @@
 from subprocess import STDOUT, PIPE, CalledProcessError
-from collections.abc import Iterable
 from types import SimpleNamespace
 import subprocess
 
@@ -11,7 +10,7 @@ import os
 
 # TODO get_feature returns Feature, "in" to work with features (store in lists?)
 
-def scan(text: str, tags: Iterable[str]):
+def scan(text, tags):
     """Scans given text for every tag from tags. 
     Returns map tag->[positions]"""
     res = {}
@@ -60,7 +59,7 @@ class Feature:
         "OUTPUT":       "EXPECTED OUTPUT",
     }
 
-    def __init__(self, tag: str, contents: Iterable[str] = None):
+    def __init__(self, tag, contents=None):
         if tag != None:
             self.tag = tag
         else:
@@ -71,7 +70,7 @@ class Feature:
         else:
             self.text = None
 
-    def info(self) -> str:
+    def info(self):
         """Returns essential info for failed test"""
         return self.tag_info[self.tag]
 
