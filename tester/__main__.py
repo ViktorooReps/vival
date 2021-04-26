@@ -9,8 +9,19 @@ import pkg_resources
 
 __version__ = pkg_resources.require("vival")[0].version
 
-#TODO implement Feature class
 #TODO progress bar
+
+def detect_lang(executable_path):
+    if executable_path.endswith(".c"):
+        return "C"
+
+    if executable_path.endswith(".cpp"):
+        return "C++"
+
+    if executable_path.endswith(".py"):
+        return "Python"
+        
+    return None
 
 @click.command()
 @click.version_option(__version__, prog_name="VIVAL")
@@ -20,7 +31,7 @@ __version__ = pkg_resources.require("vival")[0].version
     help="Number of failed tests to display.")
 @click.option("-o", "--output", "output_filename", default=None, type=click.Path(writable=True), 
     help="File to store all the extracted (and maybe filled) tests.")
-@click.option("-l", "--lang", default="C++", show_default=True, type=click.Choice(["C", "C++"], case_sensitive=False),
+@click.option("-l", "--lang", default="C++", show_default=True, type=click.Choice(["C", "C++", "Python"], case_sensitive=False),
     help="Source language.")
 @click.option("-m", "--mode", default="test", type=click.Choice(["fill", "test"], case_sensitive=False),
     help="In fill mode will fill in outputs of unfilled tests. In test mode will run executable on given tests.")
@@ -29,6 +40,8 @@ __version__ = pkg_resources.require("vival")[0].version
 @click.argument("executable_path", type=click.Path(exists=True, resolve_path=True))
 def main(executable_path, tests_file, ntests, output_filename, lang, mode, old_format):
     with TemporaryDirectory() as tmpdir_name:
+        print("wtf")
+
         if output_filename != None:
             output_filename = os.path.abspath(output_filename)
 
@@ -43,12 +56,10 @@ def main(executable_path, tests_file, ntests, output_filename, lang, mode, old_f
             parse_format = "new"
         
         parser = TestsParser(
-            expect_filled_tests= (expected_tests == "filled"), 
+            expect_filled_tests=(expected_tests == "filled"), 
             parse_format=parse_format
         )
         tests = parser.parse(tests_file)
-
-        compiler = Compiler(lang=lang, tmp_dir=tmpdir_name, flags=parser.get_flags()) 
 
         if tests == None:
             print("Parse failed!")
@@ -60,16 +71,23 @@ def main(executable_path, tests_file, ntests, output_filename, lang, mode, old_f
             for warning in parser.parse_details["warning_messages"]:
                 print(warning)
 
-        if parser.get_main() != None:
-            executable_path = compiler.plant_main(parser, executable_path)
+        detected_language = detect_lang(executable_path)
+        if detected_language == None:
+            detected_language = lang
+        
+        if detected_language == "C++" or detected_language == "C":
+            compiler = Compiler(lang=detected_language, tmp_dir=tmpdir_name, flags=parser.get_flags()) 
 
-        if executable_path != None and not os.access(executable_path, mode=os.X_OK):
-            executable_path = compiler.compile(executable_path)
+            if parser.get_main() != None:
+                executable_path = compiler.plant_main(parser, executable_path)
 
-        if executable_path == None:
-            print("Compilation failed!")
-            print(compiler.compile_details["error_message"])
-            return
+            if executable_path != None and not os.access(executable_path, mode=os.X_OK):
+                executable_path = compiler.compile(executable_path)
+
+            if executable_path == None:
+                print("Compilation failed!")
+                print(compiler.compile_details["error_message"])
+                return
 
         passed = 0
         suitable = 0

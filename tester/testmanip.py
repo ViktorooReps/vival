@@ -175,7 +175,12 @@ class Test(FeatureContainer):
         startup = self.get_feature("STARTUP")
         cleanup = self.get_feature("CLEANUP")
 
-        all_args = [exec_path]
+        if exec_path.endswith(".py"):
+            #all_args = ["python", exec_path]
+            all_args = [exec_path]
+        else:
+            all_args = [exec_path]
+
         if cmd != None:
             for arg in cmd.split(" "):
                 if arg != "":
@@ -191,12 +196,9 @@ class Test(FeatureContainer):
                         return not self.failed
 
         try:
-            prog_output = subprocess.run(all_args, 
-                                        stderr=subprocess.STDOUT, 
-                                        stdout=PIPE,
-                                        input=stdin,
-                                        timeout=file_features.timeout,
-                                        encoding='ascii').stdout
+            prog_output = subprocess.run(all_args, stderr=subprocess.STDOUT, stdout=PIPE, input=stdin,
+                timeout=file_features.timeout, encoding='ascii', shell=True).stdout
+
         except subprocess.TimeoutExpired:
             prog_output = "Time limit exceeded"
             self.failed = True
