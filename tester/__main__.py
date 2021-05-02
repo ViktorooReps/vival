@@ -40,8 +40,6 @@ def detect_lang(executable_path):
 @click.argument("executable_path", type=click.Path(exists=True, resolve_path=True))
 def main(executable_path, tests_file, ntests, output_filename, lang, mode, old_format):
     with TemporaryDirectory() as tmpdir_name:
-        print("wtf")
-
         if output_filename != None:
             output_filename = os.path.abspath(output_filename)
 
