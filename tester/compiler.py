@@ -1,10 +1,11 @@
-from subprocess import STDOUT, PIPE, CalledProcessError
-from collections.abc import Iterable
+from subprocess import CalledProcessError
 import subprocess
 
 from distutils.ccompiler import new_compiler
 
 import os
+from typing import Dict, Any
+
 
 class Compiler:
     """Compiles supported languages to executable code"""
@@ -16,14 +17,14 @@ class Compiler:
     }
 
     def __init__(self, lang="C++", tmp_dir=None, flags=None):
-        if flags == None:
+        if flags is None:
             self.flags = []
         else:
             self.flags = flags.split(" ")
 
         self.guess_lang = lang
         self.tmp_dir = tmp_dir
-        self.compile_details = {
+        self.compile_details: Dict[str, Any] = {
             "error_message": None
         }
 
@@ -37,7 +38,7 @@ class Compiler:
 
     def get_tmpdir(self):
         """Returns directory to use as temporary storage"""
-        if self.tmp_dir != None:
+        if self.tmp_dir is not None:
             tmpdir_path = self.tmp_dir
         else:
             tmpdir_path = os.path.dirname(os.path.realpath(__file__))
@@ -56,7 +57,7 @@ class Compiler:
 
         if self.guess_lang == "C++":
             main_src = os.path.join(tmpdir_path, "main.cpp")
-        
+
         if self.guess_lang == "C":
             main_src = os.path.join(tmpdir_path, "main.c")
 
@@ -71,16 +72,17 @@ class Compiler:
         # compile source files
         try:
             args = [self.compiler[self.guess_lang]] + self.flags
-            subprocess.run(args + [ "-c", main_src, "-o", main_obj], check=True)
+            subprocess.run(args + ["-c", main_src, "-o", main_obj], check=True)
             subprocess.run(args + ["-c", exec_path, "-o", exec_obj], check=True)
-        except CalledProcessError as err:
-            self.compile_details["error_message"] = "Failed to compile source files. Make sure you have C/C++ compiler installed."
+        except CalledProcessError:
+            self.compile_details[
+                "error_message"] = "Failed to compile source files. Make sure you have C/C++ compiler installed."
             return None
 
         # link object files
         try:
             subprocess.run([self.compiler[self.guess_lang], main_obj, exec_obj, "-o", res_path], check=True)
-        except CalledProcessError as err:
+        except CalledProcessError:
             self.compile_details["error_message"] = "Failed to link object files."
             return None
 
@@ -95,8 +97,9 @@ class Compiler:
         try:
             args = [self.compiler[self.guess_lang]] + self.flags
             subprocess.run(args + [src_file, "-o", exec_file], check=True)
-        except CalledProcessError as err:
-            self.compile_details["error_message"] = "Failed to compile source file. Make sure you have C/C++ compiler installed."
+        except CalledProcessError:
+            self.compile_details[
+                "error_message"] = "Failed to compile source file. Make sure you have C/C++ compiler installed."
             return None
 
         return os.path.abspath(exec_file)

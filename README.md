@@ -36,7 +36,7 @@ Here are some flags you may find useful:
 
 All the tests file structure condenses to pairs __(tag, tagged text)__, where tag specifies the use of it's text.
 
-Tags and their meaning (some tags might not be available on earlier versions of VIVAL) for v3.0:
+Tags and their meaning (some tags might not be available on earlier versions of VIVAL) for v3.1:
 
 Tag         | Category | Tagged text meaning
 ----------- | -------- | -------------------
