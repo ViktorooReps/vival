@@ -1,0 +1,59 @@
+[
+  {
+    "tag": "DESCRIPTION",
+    "id": 0,
+    "type": "File"
+  },
+  {
+    "tag": "MAIN",
+    "id": 1,
+    "type": "File"
+  },
+  {
+    "tag": "FLAGS",
+    "id": 2,
+    "type": "File"
+  },
+  {
+    "tag": "TIMEOUT",
+    "id": 3,
+    "type": "File",
+    "default": 2.0
+  },
+  {
+    "tag": "COMMENT",
+    "id": 4,
+    "type": "Test",
+    "info": ""
+  },
+  {
+    "tag": "STARTUP",
+    "id": 5,
+    "type": "Test",
+    "info": "ENVIRONMENT PREPARATION"
+  },
+  {
+    "tag": "CLEANUP",
+    "id": 6,
+    "type": "Test"
+  },
+  {
+    "tag": "INPUT",
+    "id": 7,
+    "type": "Test",
+    "info": "INPUT"
+  },
+  {
+    "tag": "CMD",
+    "id": 8,
+    "type": "Test",
+    "join_symbol": " ",
+    "info": "COMMAND LINE ARGUMENTS"
+  },
+  {
+    "tag": "OUTPUT",
+    "id": 9,
+    "type": "Test",
+    "info": "EXPECTED OUTPUT"
+  }
+]

@@ -1,105 +1,115 @@
+from enum import Enum
+from pathlib import Path
 from subprocess import CalledProcessError
 import subprocess
 
 from distutils.ccompiler import new_compiler
 
 import os
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
+
+from tester.lang import Lang, Extension
+from tester.testmanip import TestsParser
+
+
+class CompilerName(Enum):
+    GCC = 'gcc'
+    GPP = 'g++'
 
 
 class Compiler:
     """Compiles supported languages to executable code"""
 
-    supported_extentions = [".c", ".cpp", ".o"]
-    compiler = {
-        "C": "gcc",
-        "C++": "g++"
-    }
+    _ext2lang: Dict[Extension, Lang] = {Extension.C: Lang.C, Extension.CPP: Lang.CPP}
+    _lang2compiler: Dict[Lang, CompilerName] = {Lang.C: CompilerName.GCC, Lang.CPP: CompilerName.GPP}
 
-    def __init__(self, lang="C++", tmp_dir=None, flags=None):
+    def __init__(self, lang: Lang = Lang.CPP, temp_dir: os.PathLike = None, flags: str = None):
         if flags is None:
-            self.flags = []
-        else:
-            self.flags = flags.split(" ")
+            flags = ''
 
-        self.guess_lang = lang
-        self.tmp_dir = tmp_dir
+        self.flags = flags.split(' ')
+        self.default_lang = lang
+        self.guessed_lang = self.default_lang
+        self.temp_dir = temp_dir
         self.compile_details: Dict[str, Any] = {
-            "error_message": None
+            'error_message': None
         }
 
-    def get_language(self, src_file):
-        """Changes self.guess_lang according to file's extension"""
-        if src_file.endswith(".c"):
-            self.guess_lang = "C"
+        self._build_mappings()
 
-        if src_file.endswith(".cpp"):
-            self.guess_lang = "C++"
+    def _build_mappings(self):
+        self._lang2ext: Dict[Lang, Extension] = {lang: ext for ext, lang in self._ext2lang.items()}
+        self._ext2lang[Extension.OBJ] = self.default_lang
 
-    def get_tmpdir(self):
+    def set_language(self, src_file: os.PathLike) -> None:
+        """Changes self.guessed_lang according to file's extension"""
+        src_str = str(src_file)
+        for ext, lang in self._ext2lang.items():
+            if src_str.endswith(ext.value):
+                self.guessed_lang = lang
+                return
+
+        self.guessed_lang = self.default_lang
+
+    def get_tempdir(self) -> os.PathLike:
         """Returns directory to use as temporary storage"""
-        if self.tmp_dir is not None:
-            tmpdir_path = self.tmp_dir
+        if self.temp_dir is not None:
+            tempdir_path = self.temp_dir
         else:
-            tmpdir_path = os.path.dirname(os.path.realpath(__file__))
+            tempdir_path = os.path.dirname(os.path.realpath(__file__))
 
-        return os.path.abspath(tmpdir_path)
+        return os.path.abspath(tempdir_path)
 
-    def plant_main(self, parser, exec_path):
+    def plant_main(self, parser: TestsParser, exec_path: os.PathLike) -> Optional[os.PathLike]:
         """Compiles given C/C++ code with new entry point. Returns new executable path"""
 
         compiler = new_compiler()
 
-        self.get_language(exec_path)
-        tmpdir_path = self.get_tmpdir()
+        self.set_language(exec_path)
+        tempdir_path = self.get_tempdir()
 
-        # create main{.c/.cpp} in tmpdir
+        # create main{.c/.cpp} in tempdir
 
-        if self.guess_lang == "C++":
-            main_src = os.path.join(tmpdir_path, "main.cpp")
+        main_src: os.PathLike = Path(os.path.join(tempdir_path, 'main' + self._lang2ext[self.guessed_lang].value))
+        main_obj: os.PathLike = Path(os.path.join(tempdir_path, 'main.o'))
+        exec_obj: os.PathLike = Path(os.path.join(tempdir_path, 'exec.o'))
+        res_path: os.PathLike = Path(compiler.executable_filename(os.path.join(tempdir_path, 'res')))
 
-        if self.guess_lang == "C":
-            main_src = os.path.join(tmpdir_path, "main.c")
-
-        main_obj = os.path.join(tmpdir_path, "main.o")
-        exec_obj = os.path.join(tmpdir_path, "exec.o")
-
-        res_path = compiler.executable_filename(os.path.join(tmpdir_path, "res"))
-
-        with open(main_src, "w") as main_file:
+        with open(main_src, 'w') as main_file:
             main_file.write(parser.get_main())
 
         # compile source files
         try:
-            args = [self.compiler[self.guess_lang]] + self.flags
-            subprocess.run(args + ["-c", main_src, "-o", main_obj], check=True)
-            subprocess.run(args + ["-c", exec_path, "-o", exec_obj], check=True)
+            args: List[str] = [self._lang2compiler[self.guessed_lang].value] + self.flags
+            subprocess.run(args + ['-c', str(main_src), '-o', str(main_obj)], check=True)
+            subprocess.run(args + ['-c', str(exec_path), '-o', str(exec_obj)], check=True)
         except CalledProcessError:
-            self.compile_details[
-                "error_message"] = "Failed to compile source files. Make sure you have C/C++ compiler installed."
+            self.compile_details['error_message'] = 'Failed to compile source files. ' \
+                                                    'Make sure you have C/C++ compiler installed.'
             return None
 
         # link object files
         try:
-            subprocess.run([self.compiler[self.guess_lang], main_obj, exec_obj, "-o", res_path], check=True)
+            subprocess.run([self._lang2compiler[self.guessed_lang].value, str(main_obj), str(exec_obj), '-o', str(res_path)],
+                           check=True)
         except CalledProcessError:
-            self.compile_details["error_message"] = "Failed to link object files."
+            self.compile_details['error_message'] = 'Failed to link object files.'
             return None
 
         return os.path.abspath(res_path)
 
-    def compile(self, src_file):
+    def compile(self, src_file: os.PathLike) -> Optional[os.PathLike]:
         """Compiles source file to executable"""
-        self.get_language(src_file)
-        tmpdir_path = self.get_tmpdir()
-        exec_file = new_compiler().executable_filename(os.path.join(tmpdir_path, "res"))
+        self.set_language(src_file)
+        tempdir_path = self.get_tempdir()
+        exec_file: os.PathLike = Path(new_compiler().executable_filename(os.path.join(tempdir_path, "res")))
 
         try:
-            args = [self.compiler[self.guess_lang]] + self.flags
-            subprocess.run(args + [src_file, "-o", exec_file], check=True)
+            args: List[str] = [str(self._lang2compiler[self.guessed_lang])] + self.flags
+            subprocess.run(args + [str(src_file), '-o', str(exec_file)], check=True)
         except CalledProcessError:
-            self.compile_details[
-                "error_message"] = "Failed to compile source file. Make sure you have C/C++ compiler installed."
+            self.compile_details['error_message'] = 'Failed to compile source file. ' \
+                                                    'Make sure you have C/C++ compiler installed.'
             return None
 
         return os.path.abspath(exec_file)
