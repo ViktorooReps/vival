@@ -1,8 +1,13 @@
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages, findall
 from io import open
 from os import path
 
 import pathlib
+
+
+def find_configs():
+    return list(file for file in findall() if file.endswith('.json'))
+
 
 # The directory containing this file
 HERE = pathlib.Path(__file__).parent
@@ -21,8 +26,9 @@ dependency_links = [x.strip().replace('git+', '') for x in all_reqs if 'git+' no
 setup(
     name='vival',
     description='A simple commandline app for testing standard input/output applications.',
-    version='3.1.4',
+    version='3.1.8',
     packages=find_packages(),  # list of all packages
+    data_files=find_configs(),
     install_requires=install_requires,
     python_requires='>=2.7',  # any python greater than 2.7
     entry_points='''
