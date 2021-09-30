@@ -52,7 +52,9 @@ class Test(FeatureContainer):
 
     def __init__(self, title='Unnamed Test'):
         super(Test, self).__init__()
-        self.features = construct_test_features()
+        for feature in construct_test_features():
+            self.add_feature(feature)
+
         self.title = title
         self.prog_output = None
         self.failed = None

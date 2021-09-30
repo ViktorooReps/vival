@@ -28,7 +28,7 @@ class TagConfig(BaseModel):
     type: FeatureType
     join_symbol: Optional[str] = '\n'
     info: Optional[str]
-    default: Optional[str] = ""
+    default: Optional[str]
 
 
 class Feature:
@@ -47,7 +47,7 @@ class Feature:
         self.mods = set()
         self.join_symbol = self.tag_configs[self.tag].join_symbol
 
-        if self.is_empty():
+        if self.is_empty() and self.default_content(self.tag) is not None:
             self.contents = [self.default_content(self.tag)]
 
     @classmethod
@@ -141,7 +141,7 @@ class FeatureContainer:
     )
 
     def __init__(self):
-        self._tag2feature = {}
+        self._tag2feature: Dict[Tag, Feature] = {}
 
     def add_feature(self, new_feature: Feature) -> None:
         if new_feature.tag in self._tag2feature:
