@@ -1,13 +1,8 @@
-from setuptools import setup, find_packages, findall
+from setuptools import setup, find_packages
 from io import open
 from os import path
 
 import pathlib
-
-
-def find_configs():
-    return list(file for file in findall() if file.endswith('.json'))
-
 
 # The directory containing this file
 HERE = pathlib.Path(__file__).parent
@@ -28,7 +23,6 @@ setup(
     description='A simple commandline app for testing standard input/output applications.',
     version='3.1.13',
     packages=find_packages(),  # list of all packages
-    data_files=find_configs(),
     install_requires=install_requires,
     python_requires='>=3.8',
     entry_points='''
@@ -49,5 +43,7 @@ setup(
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.7",
-    ]
+    ],
+    include_package_data=True,
+    package_data={'': ['tester/config/*.json']}
 )

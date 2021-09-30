@@ -1,7 +1,13 @@
+import os
+from os.path import join
 from enum import Enum
-from typing import Optional, Any, Dict, List, Iterable
+from typing import Optional, Dict, List, Iterable
 
 from pydantic import BaseModel, parse_file_as
+
+
+package_path = os.path.abspath(os.path.dirname(__file__))
+config_path = os.path.join(package_path, 'config')
 
 
 class Tag(Enum):
@@ -34,7 +40,7 @@ class TagConfig(BaseModel):
 class Feature:
     """Pair tag->text representing File or Text feature of test"""
 
-    tag_configs: Dict[Tag, TagConfig] = {config.tag: config for config in parse_file_as(List[TagConfig], 'tester/config/tags.json')}
+    tag_configs: Dict[Tag, TagConfig] = {config.tag: config for config in parse_file_as(List[TagConfig], join(config_path, 'tags.json'))}
 
     all_mods = {'mSHUFFLED', 'mENDNL', 'mENDSPACE', 'mENDNONE'}
 
