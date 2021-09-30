@@ -71,10 +71,9 @@ def main(executable_path, tests_file, ntests, output_filename, lang, mode, old_f
         if detected_language == Lang.CPP or detected_language == Lang.C:
             compiler = Compiler(lang=detected_language, temp_dir=tempdir_name, flags=parser.get_flags())
 
-            if parser.get_main() is not None:
+            if parser.has_main():
                 executable_path = compiler.plant_main(parser, executable_path)
-
-            if executable_path is not None and not os.access(executable_path, mode=os.X_OK):
+            else:
                 executable_path = compiler.compile(executable_path)
 
             if executable_path is None:

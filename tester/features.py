@@ -28,7 +28,7 @@ class TagConfig(BaseModel):
     type: FeatureType
     join_symbol: Optional[str] = '\n'
     info: Optional[str]
-    default: Any
+    default: Optional[str] = ""
 
 
 class Feature:
@@ -47,6 +47,13 @@ class Feature:
         self.mods = set()
         self.join_symbol = self.tag_configs[self.tag].join_symbol
 
+        if self.is_empty():
+            self.contents = [self.default_content(self.tag)]
+
+    @classmethod
+    def default_content(cls, tag: Tag):
+        return cls.tag_configs[tag].default
+
     def apply_mod(self, *mods) -> None:
         for mod in mods:
             self.mods.add(mod)
@@ -58,7 +65,7 @@ class Feature:
             elif mod == 'mENDSPACE':
                 self.join_symbol = ' '
 
-    def info(self) -> str:
+    def info(self) -> Optional[str]:
         """Returns essential info for failed test"""
         return self.tag_configs[self.tag].info
 
@@ -79,7 +86,7 @@ class Feature:
         return self.tag_configs[self.tag].type == FeatureType.FILE
 
     def is_empty(self) -> bool:
-        return len(self.contents) == 0
+        return self.merged_contents() == ''
 
     def merged_contents(self) -> str:
         return self.join_symbol.join(self.contents)
@@ -129,27 +136,21 @@ def construct_file_features() -> List[Feature]:
 
 class FeatureContainer:
     """Handles storing features"""
+    __slots__ = (
+        '_tag2feature'
+    )
 
     def __init__(self):
-        self.features = []
+        self._tag2feature = {}
 
     def add_feature(self, new_feature: Feature) -> None:
-        added_features = {feature.tag: feature for feature in self.features}
-        if new_feature.tag in added_features:
-            added_features[new_feature.tag].merge_features(new_feature)
+        if new_feature.tag in self._tag2feature:
+            self._tag2feature[new_feature.tag].merge_features(new_feature)
         else:
-            self.features.append(new_feature)
+            self._tag2feature[new_feature.tag] = new_feature
 
-    def get_feature(self, tag: Tag) -> Feature:
-        return next(
-            feature
-            for feature in self.features
-            if feature.tag == tag
-        )
+    def get_feature(self, tag: Tag) -> Optional[Feature]:
+        return self._tag2feature[tag] if tag in self._tag2feature else None
 
     def replace_feature(self, new_feature: Feature) -> None:
-        feature_tag2idx: Dict[Tag, int] = {feature.tag: idx for idx, feature in enumerate(self.features)}
-        if new_feature.tag in feature_tag2idx:
-            self.features[feature_tag2idx[new_feature.tag]] = new_feature
-        else:
-            self.features.append(new_feature)
+        self._tag2feature[new_feature.tag] = new_feature

@@ -26,11 +26,11 @@ dependency_links = [x.strip().replace('git+', '') for x in all_reqs if 'git+' no
 setup(
     name='vival',
     description='A simple commandline app for testing standard input/output applications.',
-    version='3.1.8',
+    version='3.1.13',
     packages=find_packages(),  # list of all packages
     data_files=find_configs(),
     install_requires=install_requires,
-    python_requires='>=2.7',  # any python greater than 2.7
+    python_requires='>=3.8',
     entry_points='''
         [console_scripts]
         vival=tester.__main__:main

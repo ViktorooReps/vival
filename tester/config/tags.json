@@ -18,7 +18,7 @@
     "tag": "TIMEOUT",
     "id": 3,
     "type": "File",
-    "default": 2.0
+    "default": "2.0"
   },
   {
     "tag": "COMMENT",

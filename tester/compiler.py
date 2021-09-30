@@ -105,7 +105,7 @@ class Compiler:
         exec_file: os.PathLike = Path(new_compiler().executable_filename(os.path.join(tempdir_path, "res")))
 
         try:
-            args: List[str] = [str(self._lang2compiler[self.guessed_lang])] + self.flags
+            args: List[str] = [self._lang2compiler[self.guessed_lang].value] + self.flags
             subprocess.run(args + [str(src_file), '-o', str(exec_file)], check=True)
         except CalledProcessError:
             self.compile_details['error_message'] = 'Failed to compile source file. ' \

@@ -75,12 +75,7 @@ class Test(FeatureContainer):
         startup = self.get_feature(Tag.STARTUP).merged_contents()
         cleanup = self.get_feature(Tag.CLEANUP).merged_contents()
 
-        all_args = [str(exec_path)]
-
-        if cmd is not None:
-            for arg in cmd.split(' '):
-                if arg != '':
-                    all_args.append(arg)
+        all_args = str(exec_path) + ' ' + cmd
 
         if startup is not None:
             for args in startup.split('\n'):
@@ -128,9 +123,10 @@ class Test(FeatureContainer):
 
         print(self.title + '\n')
 
-        for feature in sorted(self.features):
-            if not feature.is_empty():
-                print(feature.info() + ':')
+        for feature in sorted(self._tag2feature.values()):
+            if feature.info() is not None and not feature.is_empty():
+                if feature.info() != '':
+                    print(feature.info() + ':')
                 print(feature.merged_contents() + '\n')
 
         print('PROGRAM OUTPUT:')
@@ -164,7 +160,9 @@ class TestsParser(FeatureContainer):
 
     def __init__(self, parse_format='new', expect_filled_tests=True):
         super(TestsParser, self).__init__()
-        self.features = construct_file_features()
+        for feature in construct_file_features():
+            self.add_feature(feature)
+
         self.format = parse_format
         self.expect_filled_tests = expect_filled_tests
         self.parse_details: Dict[str, Any] = {
@@ -184,17 +182,14 @@ class TestsParser(FeatureContainer):
     def get_flags(self) -> str:
         return self.get_feature(Tag.FLAGS).merged_contents()
 
+    def has_main(self) -> bool:
+        return not self.get_feature(Tag.MAIN).is_empty()
+
     def get_main(self) -> str:
         return self.get_feature(Tag.MAIN).merged_contents()
 
     def get_timeout(self) -> float:
-        timeout = self.get_feature(Tag.TIMEOUT).merged_contents()
-        if timeout != '':
-            timeout = float(timeout)
-        else:
-            timeout = Feature.tag_configs[Tag.TIMEOUT].default
-
-        return timeout
+        return float(self.get_feature(Tag.TIMEOUT).merged_contents())
 
     def parse(self, tests_file: TextIO):
         """Parses tests_file and returns list of Test objects. Returns None in case of an error"""
@@ -334,7 +329,7 @@ class TestsParser(FeatureContainer):
             tests_file.write('Install with pip: pip install vival\n')
             tests_file.write('Visit GitHub for more info: https://github.com/ViktorooReps/vival\n\n')
 
-            for feature in self.features:
+            for feature in self._tag2feature.values():
                 if not feature.is_empty():
                     tests_file.write(str(feature))
 
