@@ -21,6 +21,8 @@ class Tag(Enum):
     INPUT = 'INPUT'
     CMD = 'CMD'
     OUTPUT = 'OUTPUT'
+    SEPARATOR = 'SEPARATOR'
+    SHUFFLE = 'SHUFFLE'
 
 
 class FeatureType(Enum):

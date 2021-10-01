@@ -50,6 +50,7 @@ DESCRIPTION | File     | Description of tests file.
 STARTUP     | Test     | Shell commands that will be executed before test.
 CLEANUP     | Test     | Shell commands that will be executed after test.
 TIMEOUT     | File     | Sets time limit in seconds for all tests in the file (default is 2.0 sec).
+SEPARATOR   | File     | Sets separator for INPUT and OUTPUT tokens
 
 The body of tests file consists of repeating sections of "wild space" and bracketed text: <...WS...>__/{__<...text...>__}/__ . Wild space is mostly skipped apart from tags that will define meaning of text in brackets. The text in brackets stays unformatted.
 
@@ -84,6 +85,65 @@ OUTPUT
 Will be translated to File features: `{(DESCRIPTION, "Description 2"), (MAIN, "int sum(int a, int b) { return a + b; }")}`, and two tests: `{(COMMENT, "Empty test")}` and `{(COMMENT, "Some other test"), (INPUT, "1"), (OUTPUT, "")}`
 
 Tests without `OUTPUT` feature are considered unfilled and VIVAL wont't run given program on them. These tests can be filled in manually or using another executable.
+
+## INPUT and OUTPUT features
+
+Important to note that `INPUT` and `OUTPUT` features are preprocessed by splitting them into tokens. You can set the separator 
+used to split source text and then join separated tokens by configuring `SEPARATOR` feature:
+
+```
+SEPARATOR /{<SEP>}/
+
+INPUT /{1}/ /{2}/ /{3<SEP>4}/
+will be converted to 1<SEP>2<SEP>3<SEP>4
+```
+
+The default value of `SEPARATOR` is new line.   
+This feature is especially important with tests created for programs with ambiguous output. Note that it is not recommended
+to set `SEPARATOR` value to "$" as this symbol is used to recognize output variables.
+
+## OUTPUT variables
+
+These features deal with ambiguous outputs. Output variables are tokens with runtime defined value. They are mentioned in 
+text of `OUTPUT` feature as `$VARIABLE_NAME`. Once program is run on test with output variables, and it's
+output got split into tokens using `SEPARATOR` feature (it's important to note that variable will be recognized only
+if there is no other text in token other than variable definition present in token's text), VIVAL starts comparing expected 
+and program's outputs **token by token**. The first time it encounters variable with specific name, it takes the value of 
+corresponding token from program's output and substitutes all the occurrences of this variable with mentioned token.
+
+Example:
+```
+let's say we have OUTPUT /{3 reps: $V1 $V1 $V1}/ and SEPARATOR /{ }/
+```
+Then this test's expected output will be converted to `[3, reps:, $V1, $V1, $V1]` tokens and any program that outputs
+text `"3 reps:"` and then any string repeated 3 times and separated by space symbol will pass this test.
+
+**Why would you need these variables?**
+
+The answer is simple: to account for some runtime-defined values (such as PID) in program's output.  
+
+Example:
+```
+Test for a task defined as follows:
+'Create N processes, each of them should count from A and up to B in specified format: 
+
+PID A
+PID A + 1
+...
+PID B - 1
+PID B
+
+N, A, B are passed as command line arguments.'
+
+SHUFFLED /{True}/ 
+
+SEPARATOR /{ }/ 
+
+CMD /{3 1 3}/
+
+OUTPUT 
+/{$PID1 }/
+```
 
 ## Filling in
 
