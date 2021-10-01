@@ -55,5 +55,17 @@
     "id": 9,
     "type": "Test",
     "info": "EXPECTED OUTPUT"
+  },
+  {
+    "tag": "SEPARATOR",
+    "id": 10,
+    "type": "File",
+    "default": "\n"
+  },
+  {
+    "tag": "SHUFFLE",
+    "id": 11,
+    "type": "File",
+    "default": "False"
   }
 ]
