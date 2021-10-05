@@ -4,7 +4,7 @@ Command line app to validate standard I/O applications on series of tests.
 
 # Installation
 
-Everything should work on Linux, Windows and MacOS with Python 2.7+ versions. Also having C/C++ compiler installed is recommended but isn't required.
+Everything should work on Linux, Windows and MacOS with Python 3.6+ versions. Also having C/C++ compiler installed is recommended but isn't required.
 
 ## Using Pip
 
