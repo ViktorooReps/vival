@@ -101,4 +101,4 @@ In which case executable's output on a test will be saved as `OUTPUT` feature of
 # Contribution
 
 If you found a bug or just isn't sure how to use VIVAL, please consider creating an issue describing your problem. It might help other users as well as future project development.  
-If you want to fix any known bug or add new functionality, clone this repository, branch out from `dev` branch, add any changes you think are necessary, push, and create pull request to merge your changes into `dev` branch. They will later be added to `master` branch as well as PyPI. 
+If you want to fix any known bug or add new functionality, fork this repository, add any changes to `dev` branch you think are necessary, push, and create pull request to merge your changes into `dev` branch. They will later be added to `master` branch as well as PyPI. 
