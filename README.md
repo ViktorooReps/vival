@@ -51,6 +51,7 @@ STARTUP     | Test     | Shell commands that will be executed before test.
 CLEANUP     | Test     | Shell commands that will be executed after test.
 TIMEOUT     | File     | Sets time limit in seconds for all tests in the file (default is 2.0 sec).
 SEPARATOR   | File     | Sets separator for INPUT and OUTPUT tokens
+SHUFFLED    | File     | Possible values: True, False. Defaults to False. If set to True, makes any permutation of bracketed texts a valid output. Example: `OUTPUT mENDNONE /{A}//{B}//{C}/` creates 6 possible valid outputs: ABC, ACB, BAC, BCA, CAB, CBA.
 
 The body of tests file consists of repeating sections of "wild space" and bracketed text: <...WS...>__/{__<...text...>__}/__ . Wild space is mostly skipped apart from tags that will define meaning of text in brackets. The text in brackets stays unformatted.
 
@@ -135,14 +136,22 @@ PID B
 
 N, A, B are passed as command line arguments.'
 
-SHUFFLED /{True}/ 
+SHUFFLED /{True}/ <- output lines can be out of order
 
-SEPARATOR /{ }/ 
+SEPARATOR /{ }/
 
 CMD /{3 1 3}/
 
 OUTPUT 
-/{$PID1 }/
+/{$PID1 1}/
+/{$PID1 2}/
+/{$PID1 3}/
+/{$PID2 1}/
+/{$PID2 2}/
+/{$PID2 3}/
+/{$PID3 1}/
+/{$PID3 2}/
+/{$PID3 3}/
 ```
 
 ## Filling in
