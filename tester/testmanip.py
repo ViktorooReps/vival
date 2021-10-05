@@ -144,9 +144,9 @@ class Test(FeatureContainer):
         else:
             str_repr += self.title + ' (unfilled)\n\n'
 
-        for feature in sorted(self.features):
-            if not feature.is_empty():
-                str_repr += str(feature)
+        for feature in sorted(construct_test_features()):
+            if not self.get_feature(feature.tag).is_empty():
+                str_repr += str(self.get_feature(feature.tag))
 
         return str_repr
 
