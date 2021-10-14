@@ -1,6 +1,7 @@
+from enum import Enum
 from tempfile import TemporaryDirectory
 
-from tester.testmanip import TestsParser
+from tester.testmanip import TestsParser, ParseFormat
 from tester.compiler import Compiler
 from tester.lang import Lang, detect_lang
 
@@ -11,6 +12,11 @@ import os
 import pkg_resources
 
 __version__ = pkg_resources.require('vival')[0].version
+
+
+class Mode(Enum):
+    TEST = 'test'
+    FILL = 'fill'
 
 
 @click.command()
@@ -28,12 +34,12 @@ __version__ = pkg_resources.require('vival')[0].version
               type=click.Path(writable=True),
               help='File to store all the extracted (and maybe filled) tests.')
 @click.option('-l', '--lang',
-              default='C++', show_default=True,
-              type=click.Choice(['C', 'C++', 'Python'], case_sensitive=False),
+              default=Lang.CPP.value, show_default=True,
+              type=click.Choice([lang.value for lang in Lang], case_sensitive=False),
               help='Source language.')
 @click.option('-m', '--mode',
-              default='test',
-              type=click.Choice(['fill', 'test'], case_sensitive=False),
+              default=Mode.TEST.value,
+              type=click.Choice([mode.value for mode in Mode], case_sensitive=False),
               help='In fill mode will fill in outputs of unfilled tests. '
                    'In test mode will run executable on given tests.')
 @click.option('--old-format',
@@ -42,16 +48,13 @@ __version__ = pkg_resources.require('vival')[0].version
 @click.argument("executable_path", type=click.Path(exists=True, resolve_path=True))
 def main(executable_path, tests_file, ntests, output_filename, lang, mode, old_format):
     with TemporaryDirectory() as tempdir_name:
+        executable_path = os.path.abspath(executable_path)
+
         if output_filename is not None:
             output_filename = os.path.abspath(output_filename)
 
-        expected_tests = 'filled' if mode == 'test' else 'unfilled'
-        parse_format = 'old' if old_format else 'new'
-
-        parser = TestsParser(
-            expect_filled_tests=(expected_tests == 'filled'),
-            parse_format=parse_format
-        )
+        mode = Mode(mode)
+        parser = TestsParser(ParseFormat.OLD if old_format else ParseFormat.NEW, expect_filled_tests=(mode == Mode.TEST))
         tests = parser.parse(tests_file)
 
         if tests is None:
@@ -60,7 +63,7 @@ def main(executable_path, tests_file, ntests, output_filename, lang, mode, old_f
             return
 
         if len(parser.parse_details['warning_messages']) > 0:
-            print('\nWarnings from parser:')
+            print('Warnings from parser:')
             for warning in parser.parse_details['warning_messages']:
                 print(warning)
 
@@ -86,16 +89,16 @@ def main(executable_path, tests_file, ntests, output_filename, lang, mode, old_f
 
         timeout = parser.get_timeout()
 
-        mode2desc = {'test': 'Testing', 'fill': 'Filling'}
+        mode2desc = {Mode.TEST: 'Testing', Mode.FILL: 'Filling'}
         for test in tqdm(tests, desc=mode2desc[mode], leave=False):
             run_succeeded = False
-            if (test.filled and mode == 'test') or (not test.filled and mode == 'fill'):
+            if (test.filled and mode == Mode.TEST) or (not test.filled and mode == Mode.FILL):
                 run_succeeded = test.run(executable_path, timeout)
                 suitable += 1
 
             if run_succeeded:
                 passed += 1
-                if mode == 'fill':
+                if mode == Mode.FILL:
                     test.fill()
 
         print('\n' + str(parser) + '\n')
@@ -112,10 +115,10 @@ def main(executable_path, tests_file, ntests, output_filename, lang, mode, old_f
                     test.print_last_run()
                     printed += 1
 
-        if mode == 'test':
+        if mode == Mode.TEST:
             print('Passed tests: ' + str(passed) + '/' + str(suitable))
 
-        if mode == 'fill':
+        if mode == Mode.FILL:
             print('Filled tests: ' + str(passed) + '/' + str(suitable))
 
         if output_filename is not None:

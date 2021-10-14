@@ -27,7 +27,7 @@ class Compiler:
         if flags is None:
             flags = ''
 
-        self.flags = flags.split(' ')
+        self.flags = flags.split(' ') if flags != '' else []
         self.default_lang = lang
         self.guessed_lang = self.default_lang
         self.temp_dir = temp_dir

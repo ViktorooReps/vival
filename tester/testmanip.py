@@ -8,6 +8,11 @@ import os
 from tester.features import Tag, Feature, construct_test_features, construct_file_features, FeatureContainer
 
 
+class ParseFormat:
+    OLD = 'old'
+    NEW = 'new'
+
+
 def scan(text: str, tags: Iterable[str]) -> Dict[str, List[int]]:
     """Scans given text for every tag from tags. 
     Returns map tag->[positions]"""
@@ -160,7 +165,7 @@ class Test(FeatureContainer):
 class TestsParser(FeatureContainer):
     """Parses text file with tests"""
 
-    def __init__(self, parse_format='new', expect_filled_tests=True):
+    def __init__(self, parse_format: ParseFormat = ParseFormat.NEW, expect_filled_tests: bool = True):
         super(TestsParser, self).__init__()
         for feature in construct_file_features():
             self.add_feature(feature)
@@ -202,14 +207,14 @@ class TestsParser(FeatureContainer):
 
         brackets = scan(text, ['/{', '}/'])
 
+        if len(brackets['/{']) == 0 or self.format == ParseFormat.OLD:
+            if self.format == ParseFormat.NEW:
+                self.parse_details['warning_messages'].append('Old format detected!\n')
+            return self.old_parse(text)
+
         if len(brackets['/{']) != len(brackets['}/']):
             self.parse_details['error_message'] = 'Wrong format! Unmatched number of /{ and }/ brackets.\n'
             return None
-
-        if len(brackets['/{']) == 0 or self.format == 'old':
-            if self.format == 'new':
-                self.parse_details['warning_messages'].append('Old format detected!\n')
-            return self.old_parse(text)
 
         curr_test = Test('Test ' + str(self.parse_details['ntests'] + 1))
         filled_fields = set()
@@ -282,9 +287,9 @@ class TestsParser(FeatureContainer):
 
         return tests
 
-    def old_parse(self, text):
+    def old_parse(self, text: str):
         tests = []
-        if self.expect_filled_tests:
+        if not self.expect_filled_tests:
             contents = list(text.split('[INPUT]\n'))[1:]
             for content in contents:
                 curr_test = Test('Test ' + str(self.parse_details['ntests'] + 1))
