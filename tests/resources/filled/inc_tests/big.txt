@@ -2,7 +2,7 @@ DESCRIPTION
 /{Long test}/
 
 FLAGS
-/{-Wall -Werror -lm}/
+/{-O0}/
 
 INPUT
 /{1 2 3}/

@@ -47,14 +47,14 @@ class Mode(Enum):
               is_flag=True,
               help='Flag for backward compatibility.')
 @click.argument("executable_path", type=click.Path(exists=True, resolve_path=True))
-@click.option('-v', '--valgrind',
+@click.option('-vg', '--valgrind',
               default=False,
               is_flag=True,
-              help='Flag for valgrind memory checks ')
+              help='Flag for valgrind memory checks.')
 @click.option('-bf', '--break-fail',
               default=-1, show_default=False,
               type=click.INT,
-              help='Break if failed more test than specified')
+              help='Stop testing when failed specified number of times.')
 def main(executable_path, tests_file, ntests, output_filename, lang, mode, old_format, valgrind, break_fail):
     with TemporaryDirectory() as tempdir_name:
         executable_path = os.path.abspath(executable_path)
@@ -94,7 +94,8 @@ def main(executable_path, tests_file, ntests, output_filename, lang, mode, old_f
                 return
 
         if valgrind:
-            executable_path = shutil.which('valgrind') + ' -q ' + executable_path
+            valgrind_options = [shutil.which('valgrind'), '-q', '--leak-check=full']
+            executable_path = ' '.join(valgrind_options + [executable_path])
 
         passed = 0
         failed = 0
