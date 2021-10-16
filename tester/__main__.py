@@ -8,6 +8,7 @@ from tester.lang import Lang, detect_lang
 from tqdm import tqdm
 import click
 import os
+import shutil
 
 import pkg_resources
 
@@ -46,7 +47,15 @@ class Mode(Enum):
               is_flag=True,
               help='Flag for backward compatibility.')
 @click.argument("executable_path", type=click.Path(exists=True, resolve_path=True))
-def main(executable_path, tests_file, ntests, output_filename, lang, mode, old_format):
+@click.option('-v', '--valgrind',
+              default=False,
+              is_flag=True,
+              help='Flag for valgrind memory checks ')
+@click.option('-bf', '--break-fail',
+              default=-1, show_default=False,
+              type=click.INT,
+              help='Break if failed more test than specified')
+def main(executable_path, tests_file, ntests, output_filename, lang, mode, old_format, valgrind, break_fail):
     with TemporaryDirectory() as tempdir_name:
         executable_path = os.path.abspath(executable_path)
 
@@ -84,7 +93,11 @@ def main(executable_path, tests_file, ntests, output_filename, lang, mode, old_f
                 print(compiler.compile_details['error_message'])
                 return
 
+        if valgrind:
+            executable_path = shutil.which('valgrind') + ' -q ' + executable_path
+
         passed = 0
+        failed = 0
         suitable = 0
 
         timeout = parser.get_timeout()
@@ -100,6 +113,10 @@ def main(executable_path, tests_file, ntests, output_filename, lang, mode, old_f
                 passed += 1
                 if mode == Mode.FILL:
                     test.fill()
+            else:
+                failed += 1
+                if break_fail > 0 and failed >= break_fail:
+                    break
 
         print('\n' + str(parser) + '\n')
 
