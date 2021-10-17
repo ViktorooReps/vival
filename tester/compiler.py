@@ -59,46 +59,7 @@ class Compiler:
             tempdir_path = os.path.dirname(os.path.realpath(__file__))
 
         return os.path.abspath(tempdir_path)
-
-    def plant_main(self, parser: TestsParser, exec_path: os.PathLike) -> Optional[os.PathLike]:
-        """Compiles given C/C++ code with new entry point. Returns new executable path"""
-
-        compiler = new_compiler()
-
-        self.set_language(exec_path)
-        tempdir_path = self.get_tempdir()
-
-        # create main{.c/.cpp} in tempdir
-
-        main_src: os.PathLike = Path(os.path.join(tempdir_path, 'main' + self._lang2ext[self.guessed_lang].value))
-        main_obj: os.PathLike = Path(os.path.join(tempdir_path, 'main.o'))
-        exec_obj: os.PathLike = Path(os.path.join(tempdir_path, 'exec.o'))
-        res_path: os.PathLike = Path(compiler.executable_filename(os.path.join(tempdir_path, 'res')))
-
-        with open(main_src, 'w') as main_file:
-            main_file.write(parser.get_main())
-
-        # compile source files
-        try:
-            args: List[str] = [self._lang2compiler[self.guessed_lang].value] + self.flags
-            subprocess.run(args + ['-c', str(main_src), '-o', str(main_obj)], check=True)
-            subprocess.run(args + ['-c', str(exec_path), '-o', str(exec_obj)], check=True)
-        except CalledProcessError:
-            self.compile_details['error_message'] = 'Failed to compile source files. ' \
-                                                    'Make sure you have C/C++ compiler installed.'
-            return None
-
-        # link object files
-        try:
-            subprocess.run([self._lang2compiler[self.guessed_lang].value, str(main_obj), str(exec_obj), '-o', str(res_path)],
-                           check=True)
-        except CalledProcessError:
-            self.compile_details['error_message'] = 'Failed to link object files.'
-            return None
-
-        return os.path.abspath(res_path)
-
-    def compile(self, src_file: os.PathLike) -> Optional[os.PathLike]:
+    def compile(self, src_file: os.PathLike, main: Optional[str]) -> Optional[os.PathLike]:
         """Compiles source file to executable"""
         self.set_language(src_file)
         tempdir_path = self.get_tempdir()
@@ -106,6 +67,11 @@ class Compiler:
 
         try:
             args: List[str] = [self._lang2compiler[self.guessed_lang].value] + self.flags
+            if main is not None:
+                main_src: os.PathLike = Path(os.path.join(tempdir_path, 'main' + self._lang2ext[self.guessed_lang].value))
+                with open(main_src, 'w') as main_file:
+                    main_file.write(main)
+                args += [str(main_src)]
             subprocess.run(args + [str(src_file), '-o', str(exec_file)], check=True)
         except CalledProcessError:
             self.compile_details['error_message'] = 'Failed to compile source file. ' \
