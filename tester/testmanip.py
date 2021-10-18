@@ -65,7 +65,7 @@ class Test(FeatureContainer):
         self.failed = None
         self.filled = False
 
-    def validate(self):
+    def validate(self) -> bool:
         """Checks if prog_output is correct"""
         if 'mSHUFFLED' in self.get_feature(Tag.OUTPUT).mods:
             possible = self.get_feature(Tag.OUTPUT).merged_contents()
@@ -73,7 +73,7 @@ class Test(FeatureContainer):
         else:
             return self.get_feature(Tag.OUTPUT).merged_contents() == self.prog_output
 
-    def run(self, exec_path: os.PathLike, timeout: float) -> bool:
+    def run(self, exec_path: os.PathLike, timeout: float = float(Feature.default_content(Tag.TIMEOUT))) -> bool:
         """Runs executable on this test. Returns True if run succeeded"""
         exec_path = os.path.abspath(exec_path)
 
@@ -87,7 +87,7 @@ class Test(FeatureContainer):
         if startup is not None:
             for args in startup.split('\n'):
                 if args != '':
-                    code = os.waitstatus_to_exitcode(os.system(args))
+                    code = subprocess.call(args, shell=True)  # TODO test this
                     if code != 0:
                         self.prog_output = 'The program was not executed due to errors during environment preparation stage. ' \
                                            'Failed to execute: ' + args
@@ -106,7 +106,7 @@ class Test(FeatureContainer):
         if cleanup is not None:
             for args in cleanup.split('\n'):
                 if args != '':
-                    code = os.waitstatus_to_exitcode(os.system(args))
+                    code = subprocess.call(args, shell=True)  # TODO test this
                     if code != 0:
                         self.prog_output = 'Cleanup stage failed. Failed to execute: ' + args
                         self.failed = True

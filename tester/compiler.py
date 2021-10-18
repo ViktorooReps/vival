@@ -9,7 +9,6 @@ import os
 from typing import Dict, Any, List, Optional
 
 from tester.lang import Lang, Extension
-from tester.testmanip import TestsParser
 
 
 class CompilerName(Enum):
@@ -20,7 +19,6 @@ class CompilerName(Enum):
 class Compiler:
     """Compiles supported languages to executable code"""
 
-    _ext2lang: Dict[Extension, Lang] = {Extension.C: Lang.C, Extension.CPP: Lang.CPP}
     _lang2compiler: Dict[Lang, CompilerName] = {Lang.C: CompilerName.GCC, Lang.CPP: CompilerName.GPP}
 
     def __init__(self, lang: Lang = Lang.CPP, temp_dir: os.PathLike = None, flags: str = None):
@@ -38,6 +36,7 @@ class Compiler:
         self._build_mappings()
 
     def _build_mappings(self):
+        self._ext2lang: Dict[Extension, Lang] = {Extension.C: Lang.C, Extension.CPP: Lang.CPP}
         self._lang2ext: Dict[Lang, Extension] = {lang: ext for ext, lang in self._ext2lang.items()}
         self._ext2lang[Extension.OBJ] = self.default_lang
 
@@ -59,19 +58,20 @@ class Compiler:
             tempdir_path = os.path.dirname(os.path.realpath(__file__))
 
         return os.path.abspath(tempdir_path)
-    def compile(self, src_file: os.PathLike, main: Optional[str]) -> Optional[os.PathLike]:
+
+    def compile(self, src_file: os.PathLike, main: Optional[str] = None) -> Optional[os.PathLike]:
         """Compiles source file to executable"""
         self.set_language(src_file)
         tempdir_path = self.get_tempdir()
         exec_file: os.PathLike = Path(new_compiler().executable_filename(os.path.join(tempdir_path, "res")))
 
+        args: List[str] = [self._lang2compiler[self.guessed_lang].value] + self.flags
+        if main is not None:
+            main_src: os.PathLike = Path(os.path.join(tempdir_path, 'main' + self._lang2ext[self.guessed_lang].value))
+            with open(main_src, 'w') as main_file:
+                main_file.write(main)
+            args += [str(main_src)]
         try:
-            args: List[str] = [self._lang2compiler[self.guessed_lang].value] + self.flags
-            if main is not None:
-                main_src: os.PathLike = Path(os.path.join(tempdir_path, 'main' + self._lang2ext[self.guessed_lang].value))
-                with open(main_src, 'w') as main_file:
-                    main_file.write(main)
-                args += [str(main_src)]
             subprocess.run(args + [str(src_file), '-o', str(exec_file)], check=True)
         except CalledProcessError:
             self.compile_details['error_message'] = 'Failed to compile source file. ' \
