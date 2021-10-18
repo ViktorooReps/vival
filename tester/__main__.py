@@ -84,7 +84,7 @@ def main(executable_path, tests_file, ntests, output_filename, lang, mode, old_f
             compiler = Compiler(lang=detected_language, temp_dir=tempdir_name, flags=parser.get_flags())
 
             if parser.has_main():
-                executable_path = compiler.plant_main(parser, executable_path)
+                executable_path = compiler.compile(executable_path, parser.get_main())
             else:
                 executable_path = compiler.compile(executable_path)
 
