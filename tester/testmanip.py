@@ -189,6 +189,20 @@ class TestsParser(FeatureContainer):
     def get_flags(self) -> str:
         return self.get_feature(Tag.FLAGS).merged_contents()
 
+    def get_sanitizers(self) -> list:
+        sanitizers = []
+        for f in self.get_feature(Tag.FLAGS).merged_contents().split(' '):
+            if '-fsanitize' in f:
+                sanitizers += f.split('=')[1].split(',')
+        return sanitizers 
+
+    def delete_sanitizers(self) -> None:
+        flags = self.get_feature(Tag.FLAGS).merged_contents().split(' ')
+        for f in flags:
+            if '-fsanitize' in f:
+                flags.remove(f)
+        self.replace_feature(Feature(Tag.FLAGS, [' '.join(flags)])) 
+
     def has_main(self) -> bool:
         return not self.get_feature(Tag.MAIN).is_empty()
 
