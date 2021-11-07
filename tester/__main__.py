@@ -66,6 +66,10 @@ def main(executable_path, tests_file, ntests, output_filename, lang, mode, old_f
         parser = TestsParser(ParseFormat.OLD if old_format else ParseFormat.NEW, expect_filled_tests=(mode == Mode.TEST))
         tests = parser.parse(tests_file)
 
+        if parser.get_sanitizers() and valgrind:
+            print('Warning: valgrind is enabled, so sanitizers were deleted from flags')
+            parser.delete_sanitizers()
+
         if tests is None:
             print('Parse failed!')
             print(parser.parse_details['error_message'])
