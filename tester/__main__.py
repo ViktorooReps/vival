@@ -97,6 +97,9 @@ def main(executable_path, tests_file, ntests, output_filename, lang, mode, old_f
                 print(compiler.compile_details['error_message'])
                 return
 
+        if parser.get_checker():
+            executable_path = ' '.join([os.path.abspath(parser.get_checker()), executable_path])
+
         if valgrind:
             valgrind_options = [shutil.which('valgrind'), '-q', '--leak-check=full']
             executable_path = ' '.join(valgrind_options + [executable_path])

@@ -21,6 +21,7 @@ class Tag(Enum):
     INPUT = 'INPUT'
     CMD = 'CMD'
     OUTPUT = 'OUTPUT'
+    CHECKER = 'CHECKER'
 
 
 class FeatureType(Enum):
