@@ -55,5 +55,11 @@
     "id": 9,
     "type": "Test",
     "info": "EXPECTED OUTPUT"
+  },
+  {
+    "tag": "CHECKER",
+    "id": 10,
+    "type": "File",
+    "info": "TEST CHECKER"
   }
 ]

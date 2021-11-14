@@ -189,6 +189,9 @@ class TestsParser(FeatureContainer):
     def get_flags(self) -> str:
         return self.get_feature(Tag.FLAGS).merged_contents()
 
+    def get_checker(self) -> str:
+        return self.get_feature(Tag.CHECKER).merged_contents()
+
     def get_sanitizers(self) -> List[str]:
         sanitizers = []
         for f in self.get_feature(Tag.FLAGS).merged_contents().split(' '):

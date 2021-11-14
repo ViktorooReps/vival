@@ -36,7 +36,7 @@ Here are some flags you may find useful:
 
 All the tests file structure condenses to pairs __(tag, tagged text)__, where tag specifies the use of it's text.
 
-Tags and their meaning (some tags might not be available on earlier versions of VIVAL) for v3.1:
+Tags and their meaning (some tags might not be available on earlier versions of VIVAL) for v3.3:
 
 Tag         | Category | Tagged text meaning
 ----------- | -------- | -------------------
@@ -50,6 +50,7 @@ DESCRIPTION | File     | Description of tests file.
 STARTUP     | Test     | Shell commands that will be executed before test.
 CLEANUP     | Test     | Shell commands that will be executed after test.
 TIMEOUT     | File     | Sets time limit in seconds for all tests in the file (default is 2.0 sec).
+CHECKER     | File     | Shell command that will be used to check correctness of result.
 
 The body of tests file consists of repeating sections of "wild space" and bracketed text: <...WS...>__/{__<...text...>__}/__ . Wild space is mostly skipped apart from tags that will define meaning of text in brackets. The text in brackets stays unformatted.
 
