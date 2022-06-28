@@ -55,6 +55,8 @@ def align(possible: str, target: str, added_symbol: str) -> bool:
 class Test(FeatureContainer):
     """Single extracted test"""
 
+    ENCODING = 'ascii'
+
     def __init__(self, title='Unnamed Test'):
         super(Test, self).__init__()
         for feature in construct_test_features():
@@ -95,7 +97,7 @@ class Test(FeatureContainer):
                         return not self.failed
         try:
             prog_output = subprocess.run(all_args, stderr=subprocess.STDOUT, stdout=PIPE, input=stdin,
-                                         timeout=timeout, encoding='ascii', shell=True).stdout
+                                         timeout=timeout, encoding=Test.ENCODING, shell=True).stdout
 
         except subprocess.TimeoutExpired:
             prog_output = 'Time limit exceeded'
@@ -165,7 +167,10 @@ class Test(FeatureContainer):
 class TestsParser(FeatureContainer):
     """Parses text file with tests"""
 
-    def __init__(self, parse_format: ParseFormat = ParseFormat.NEW, expect_filled_tests: bool = True):
+    def __init__(self, parse_format: ParseFormat = ParseFormat.NEW, expect_filled_tests: bool = True, file_encoding: str = None):
+        if file_encoding is not None:
+            Test.ENCODING = file_encoding
+
         super(TestsParser, self).__init__()
         for feature in construct_file_features():
             self.add_feature(feature)
