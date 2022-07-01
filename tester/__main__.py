@@ -19,9 +19,16 @@ class Mode(Enum):
     TEST = 'test'
     FILL = 'fill'
 
+class Encoding(Enum):
+    ASCII = 'ascii'
+    UTF = 'utf-8'
 
 @click.command()
 @click.version_option(__version__, prog_name='VIVAL')
+@click.option('-ue', '--use-encoding',
+              default=Encoding.ASCII.value,
+              type=click.Choice([enc.value for enc in Encoding], case_sensitive=False),
+              help="Text file encoding to use. Select 'utf-8' on Windows.")
 @click.option('-t', '--tests', 'tests_file',
               default='tests.txt',
               type=click.File(),
@@ -46,6 +53,10 @@ class Mode(Enum):
 @click.option('--old-format',
               is_flag=True,
               help='Flag for backward compatibility.')
+@click.option('--add-quotes',
+              is_flag=True,
+              default=False,
+              help='Add quotes to executable path. Us on Windows if you pass full absolute path to executable.')
 @click.argument("executable_path", type=click.Path(exists=True, resolve_path=True))
 @click.option('-vg', '--valgrind',
               default=False,
@@ -55,7 +66,7 @@ class Mode(Enum):
               default=-1, show_default=False,
               type=click.INT,
               help='Stop testing when failed specified number of times.')
-def main(executable_path, tests_file, ntests, output_filename, lang, mode, old_format, valgrind, break_fail):
+def main(executable_path, tests_file, ntests, output_filename, lang, mode, use_encoding, old_format, valgrind, break_fail, add_quotes):
     with TemporaryDirectory() as tempdir_name:
         executable_path = os.path.abspath(executable_path)
 
@@ -63,7 +74,7 @@ def main(executable_path, tests_file, ntests, output_filename, lang, mode, old_f
             output_filename = os.path.abspath(output_filename)
 
         mode = Mode(mode)
-        parser = TestsParser(ParseFormat.OLD if old_format else ParseFormat.NEW, expect_filled_tests=(mode == Mode.TEST))
+        parser = TestsParser(ParseFormat.OLD if old_format else ParseFormat.NEW, expect_filled_tests=(mode == Mode.TEST), encoding=use_encoding, exec_quotes=add_quotes)
         tests = parser.parse(tests_file)
 
         if parser.get_sanitizers() and valgrind:

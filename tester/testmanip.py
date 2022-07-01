@@ -55,6 +55,9 @@ def align(possible: str, target: str, added_symbol: str) -> bool:
 class Test(FeatureContainer):
     """Single extracted test"""
 
+    ENCODING: str = 'ascii'
+    USE_QUOTES_FRAMED_PATH: bool = False
+
     def __init__(self, title='Unnamed Test'):
         super(Test, self).__init__()
         for feature in construct_test_features():
@@ -82,7 +85,11 @@ class Test(FeatureContainer):
         startup = self.get_feature(Tag.STARTUP).merged_contents()
         cleanup = self.get_feature(Tag.CLEANUP).merged_contents()
 
-        all_args = str(exec_path) + ' ' + cmd
+        all_args: str = None
+        if (Test.USE_QUOTES_FRAMED_PATH):
+            all_args = '\"' + str(exec_path) + '\" ' + cmd  # Useful for Windows users.
+        else:
+            all_args = str(exec_path) + ' ' + cmd
 
         if startup is not None:
             for args in startup.split('\n'):
@@ -95,7 +102,7 @@ class Test(FeatureContainer):
                         return not self.failed
         try:
             prog_output = subprocess.run(all_args, stderr=subprocess.STDOUT, stdout=PIPE, input=stdin,
-                                         timeout=timeout, encoding='ascii', shell=True).stdout
+                                         timeout=timeout, encoding=Test.ENCODING, shell=True).stdout
 
         except subprocess.TimeoutExpired:
             prog_output = 'Time limit exceeded'
@@ -165,7 +172,11 @@ class Test(FeatureContainer):
 class TestsParser(FeatureContainer):
     """Parses text file with tests"""
 
-    def __init__(self, parse_format: ParseFormat = ParseFormat.NEW, expect_filled_tests: bool = True):
+    def __init__(self, parse_format: ParseFormat = ParseFormat.NEW, expect_filled_tests: bool = True, encoding: str = None, exec_quotes: bool = None):
+        if encoding is not None:
+            Test.ENCODING = encoding
+        if exec_quotes is not None:
+            Test.USE_QUOTES_FRAMED_PATH = exec_quotes
         super(TestsParser, self).__init__()
         for feature in construct_file_features():
             self.add_feature(feature)
