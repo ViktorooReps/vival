@@ -1,6 +1,6 @@
 # VIVAL
 
-Command line app to validate standard I/O applications on series of tests.
+VIVAL is a cross-platform command-line tool that lets you fire a battery of standard-input / standard-output tests at any console program in one go. Hand it an executable or raw C/C++ source plus a plain-text file that lists your cases and VIVAL will (optionally) compile the code, stream the inputs, compare the produced stdout with the expected answers, and show a focused report of the failures—honouring per-test time-outs, custom checkers, startup/cleanup commands, and other directives defined by simple tags like `INPUT`, `OUTPUT`, `CMD`, or `TIMEOUT`. Installed with a single `pip install vival`, it gives competitive-programming contestants, educators, and CI pipelines a lightweight way to validate simple programs. 
 
 # Installation
 
